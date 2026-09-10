@@ -1,0 +1,4151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>TXC Viewer — View TransXChange Timetables Online</title>
+  <meta name="description" content="Open TransXChange files as readable combined timetables with journey codes and destination information. Private, browser-based and read-only.">
+  <meta name="author" content="Rhinog Studio">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://rhinogstudio.github.io/txc-suite/viewer/">
+  <style>
+    :root {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #17212b;
+      background: #edf5f3;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 22px;
+    }
+
+    .app {
+      max-width: 1480px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #d5dce3;
+      border-radius: 13px;
+      box-shadow: 0 12px 35px rgba(26, 39, 52, .10);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 22px 28px;
+      border-bottom: 1px solid #bddbd4;
+      background: linear-gradient(135deg, #ffffff, #edf8f5);
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-icon {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      filter: drop-shadow(0 4px 8px rgba(8, 127, 107, .18));
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: 27px;
+      letter-spacing: -.25px;
+    }
+
+    header p {
+      margin: 0;
+      color: #4f6c65;
+    }
+
+    main {
+      padding: 22px 28px 30px;
+    }
+
+    .notice {
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border: 1px solid #afd8cf;
+      border-radius: 8px;
+      background: #eef9f6;
+    }
+
+    .notice.warning {
+      border-color: #e4c777;
+      background: #fff7e4;
+    }
+
+    .notice.error {
+      border-color: #dda0a0;
+      background: #fff0f0;
+    }
+
+    fieldset {
+      border: 1px solid #d7dde3;
+      border-radius: 9px;
+      padding: 15px;
+      margin: 0 0 15px;
+    }
+
+    legend {
+      padding: 0 8px;
+      font-weight: 750;
+    }
+
+    .load-grid,
+    .controls-grid,
+    .summary-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .load-grid {
+      grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+    }
+
+    .controls-grid {
+      grid-template-columns: minmax(270px, 1.7fr) minmax(210px, 1fr)
+        minmax(170px, .8fr) minmax(240px, 1.2fr) minmax(150px, .7fr);
+    }
+
+    .controls-grid .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .controls-grid .field select {
+      margin-top: auto;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      margin-top: 13px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 680;
+    }
+
+    .field small {
+      display: block;
+      margin-top: 6px;
+      color: #687785;
+    }
+
+    input[type="file"],
+    input[type="search"],
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #aeb9c3;
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: #fff;
+      font: inherit;
+    }
+
+    .actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 14px 0;
+    }
+
+    button {
+      border: 1px solid #8d99a5;
+      background: #fff;
+      color: #17212b;
+      border-radius: 7px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 680;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #087f6b;
+      color: #fff;
+      border-color: #087f6b;
+    }
+
+    button.primary:hover {
+      background: #066b5b;
+      border-color: #066b5b;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 10px 0;
+      font-weight: 650;
+    }
+
+    .hidden { display: none !important; }
+
+    .service-summary {
+      border: 1px solid #d7dde3;
+      border-radius: 10px;
+      padding: 17px;
+      background: #f9fbfc;
+      margin-bottom: 17px;
+    }
+
+    .service-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .service-title h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .service-title .subtitle {
+      margin-top: 4px;
+      color: #586674;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 720;
+      background: #e5eef5;
+      color: #28475f;
+      white-space: nowrap;
+    }
+
+    .badge.green {
+      background: #e8f6ec;
+      color: #176b35;
+    }
+
+    .badge.amber {
+      background: #fff1cf;
+      color: #845600;
+    }
+
+    .summary-item {
+      min-width: 0;
+    }
+
+    .summary-label {
+      color: #71808d;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+
+    .summary-value {
+      margin-top: 3px;
+      font-weight: 680;
+      word-break: break-word;
+    }
+
+    .warnings {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border: 1px solid #e5c97e;
+      border-radius: 8px;
+      background: #fff8e8;
+    }
+
+    .warnings ul {
+      margin: 6px 0 0 20px;
+      padding: 0;
+    }
+
+    .pattern-card {
+      border: 1px solid #d4dbe2;
+      border-radius: 10px;
+      margin: 0 0 20px;
+      overflow: hidden;
+      break-inside: avoid;
+    }
+
+    .pattern-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #dce2e8;
+      background: #f4f7f9;
+    }
+
+    .pattern-header h3 {
+      margin: 0 0 5px;
+      font-size: 18px;
+    }
+
+    .pattern-meta {
+      color: #61707e;
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow: auto;
+      max-height: 680px;
+    }
+
+    table.timetable {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+
+    table.timetable th,
+    table.timetable td {
+      padding: 8px 10px;
+      border-right: 1px solid #e0e5e9;
+      border-bottom: 1px solid #e4e8ec;
+      text-align: center;
+      white-space: nowrap;
+      background: #fff;
+    }
+
+    table.timetable thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #eaf0f4;
+      font-weight: 750;
+    }
+
+    table.timetable .stop-column {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: 280px;
+      max-width: 360px;
+      text-align: left;
+      white-space: normal;
+      background: #f8fafb;
+      box-shadow: 2px 0 0 #dce2e7;
+    }
+
+    table.timetable tbody tr:nth-child(odd) td {
+      background: #fff;
+    }
+
+    table.timetable tbody tr:nth-child(even) td {
+      background: #f4f6f7;
+    }
+
+    table.timetable tbody tr:nth-child(odd) .stop-column {
+      background: #f8fafb;
+    }
+
+    table.timetable tbody tr:nth-child(even) .stop-column {
+      background: #eef2f4;
+    }
+
+    table.timetable thead .stop-column {
+      z-index: 4;
+      background: #eaf0f4;
+    }
+
+    .stop-name {
+      font-weight: 650;
+    }
+
+    .stop-code {
+      display: block;
+      margin-top: 2px;
+      color: #7a8792;
+      font-size: 11px;
+    }
+
+    .timing-point .stop-name {
+      font-weight: 800;
+    }
+
+    .timing-chip {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: #dceaf5;
+      color: #315a78;
+      font-size: 10px;
+      font-weight: 750;
+    }
+
+    .journey-condition-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 3px;
+      min-height: 19px;
+      margin-bottom: 4px;
+    }
+
+    .journey-condition-badge {
+      display: inline-block;
+      padding: 2px 5px;
+      border: 1px solid #8fa3b2;
+      border-radius: 5px;
+      background: #e9f0f5;
+      color: #284c65;
+      font-size: 9px;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .journey-condition-badge.school-days {
+      border-color: #78ae87;
+      background: #e8f6ec;
+      color: #176b35;
+    }
+
+    .journey-condition-badge.non-school-days {
+      border-color: #d2a95e;
+      background: #fff2d8;
+      color: #865600;
+    }
+
+    .journey-condition-badge.note-code {
+      border-color: #9b8fc2;
+      background: #f0ecfb;
+      color: #4f3a8a;
+    }
+
+    .journey-condition-label {
+      max-width: 135px;
+      margin: -1px auto 4px;
+      overflow: hidden;
+      color: #536775;
+      font-size: 9px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .journey-code-label {
+      color: #647786;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .25px;
+      text-transform: uppercase;
+    }
+
+    .journey-code-value {
+      margin: 1px 0 4px;
+      color: #173f5b;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .journey-code-value.missing {
+      color: #9a5d00;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .journey-head-time {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .journey-head-days {
+      margin-top: 2px;
+      color: #536675;
+      font-size: 11px;
+      max-width: 125px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .day-offset {
+      margin-left: 2px;
+      color: #9a5d00;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .dynamic-destination-panel {
+      margin: 18px 16px;
+      padding: 16px;
+      border: 2px solid #9fb8ca;
+      border-radius: 12px;
+      background: #f5f9fc;
+      box-shadow: 0 3px 10px rgba(31, 71, 98, .10);
+    }
+
+    .dynamic-destination-panel h4 {
+      margin: 0 0 5px;
+      color: #173f5b;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .dynamic-destination-intro {
+      margin: 0 0 12px;
+      color: #596b79;
+      font-size: 12px;
+    }
+
+    .dynamic-destination-group {
+      margin-top: 12px;
+      border: 1px solid #ccd7df;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .dynamic-destination-group:first-of-type {
+      margin-top: 0;
+    }
+
+    .dynamic-destination-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #eef4f8;
+      cursor: pointer;
+      list-style-position: inside;
+    }
+
+    .dynamic-destination-group-header:hover {
+      background: #e3eef5;
+    }
+
+    .dynamic-destination-group[open] .dynamic-destination-group-header {
+      border-bottom: 1px solid #d8e0e6;
+    }
+
+    .dynamic-destination-group-title {
+      font-weight: 780;
+    }
+
+    .dynamic-expand-hint {
+      flex: 0 0 auto;
+      color: #5c7281;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .25px;
+    }
+
+    .dynamic-destination-group[open] .dynamic-expand-hint::before {
+      content: "Click to collapse";
+    }
+
+    .dynamic-destination-group:not([open]) .dynamic-expand-hint::before {
+      content: "Click to expand";
+    }
+
+    .dynamic-destination-group-content {
+      background: #fff;
+    }
+
+    .dynamic-journey-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 7px;
+      padding: 0 12px 9px;
+    }
+
+    .dynamic-journey-chip {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid #9eb2c0;
+      border-radius: 999px;
+      background: #fff;
+      color: #294e67;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10px;
+      font-weight: 760;
+    }
+
+    table.dynamic-destination-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.dynamic-destination-table th,
+    table.dynamic-destination-table td {
+      padding: 9px 11px;
+      border-bottom: 1px solid #e2e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table.dynamic-destination-table th {
+      background: #f7f9fa;
+      color: #526574;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .25px;
+    }
+
+    table.dynamic-destination-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .dynamic-stop-name {
+      font-weight: 720;
+    }
+
+    .dynamic-stop-code {
+      display: block;
+      margin-top: 2px;
+      color: #798792;
+      font-size: 10px;
+    }
+
+    .dynamic-display-value {
+      font-weight: 800;
+      color: #173f5b;
+    }
+
+    .dynamic-display-change {
+      display: inline-block;
+      margin-top: 3px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #dceaf5;
+      color: #235879;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .dynamic-display-carried {
+      color: #6c7b86;
+      font-size: 10px;
+    }
+
+    .direction-details {
+      padding: 11px 16px;
+      border-bottom: 1px solid #d9e1e7;
+      background: #f8fbfd;
+      color: #3d5363;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .direction-details strong {
+      color: #173f5b;
+    }
+
+    .direction-pattern-list {
+      margin: 4px 0 0 18px;
+      padding: 0;
+    }
+
+    .combined-view-note {
+      padding: 9px 16px;
+      border-top: 1px solid #e1e6ea;
+      background: #f7fafc;
+      color: #526675;
+      font-size: 12px;
+    }
+
+    .exception-panel details {
+      margin-top: 7px;
+    }
+
+    .exception-panel summary {
+      cursor: pointer;
+      color: #315a78;
+      font-weight: 700;
+    }
+
+    .exception-panel .calendar-ranges {
+      margin-top: 6px;
+      color: #536675;
+    }
+
+    .exception-panel {
+      padding: 12px 16px;
+      border-top: 1px solid #e1e6ea;
+      background: #fbfcfd;
+      font-size: 12px;
+    }
+
+    .exception-panel strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .exception-panel ul {
+      margin: 0 0 0 19px;
+      padding: 0;
+    }
+
+    .empty-state {
+      padding: 35px 20px;
+      text-align: center;
+      color: #697784;
+      border: 1px dashed #bfc8d0;
+      border-radius: 9px;
+    }
+
+    .log {
+      padding: 9px 11px;
+      max-height: 135px;
+      overflow: auto;
+      white-space: pre-wrap;
+      border: 1px solid #d2d8de;
+      border-radius: 7px;
+      background: #f8fafb;
+      color: #53616e;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+    }
+
+    footer {
+      padding: 14px 28px 18px;
+      border-top: 1px solid #e0e5ea;
+      color: #697784;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .controls-grid,
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 8px; }
+      header, main, footer {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      .load-grid,
+      .controls-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      @page {
+        size: landscape;
+        margin: 10mm;
+      }
+
+      body {
+        padding: 0;
+        background: #fff;
+      }
+
+      .app {
+        max-width: none;
+        border: 0;
+        box-shadow: none;
+      }
+
+      header {
+        padding: 0 0 10px;
+        background: #fff;
+      }
+
+      header p,
+      .load-section,
+      .viewer-controls,
+      .actions,
+      .status,
+      #message,
+      .log,
+      footer,
+      .warnings {
+        display: none !important;
+      }
+
+      main { padding: 0; }
+
+      .service-summary {
+        border: 0;
+        padding: 0 0 10px;
+        margin: 0;
+        background: #fff;
+      }
+
+      .pattern-card {
+        border: 1px solid #777;
+        page-break-inside: avoid;
+      }
+
+      .table-wrap {
+        overflow: visible;
+        max-height: none;
+      }
+
+      table.timetable {
+        width: 100%;
+        font-size: 9px;
+      }
+
+      table.timetable th,
+      table.timetable td {
+        padding: 4px 5px;
+      }
+
+      table.timetable .stop-column,
+      table.timetable thead th {
+        position: static;
+        box-shadow: none;
+      }
+
+      .stop-code,
+      .journey-head-days,
+      .exception-panel {
+        font-size: 8px;
+      }
+
+      .dynamic-destination-panel {
+        padding: 8px 0;
+        background: #fff;
+      }
+
+      .dynamic-destination-group {
+        page-break-inside: avoid;
+      }
+
+      table.dynamic-destination-table {
+        font-size: 9px;
+      }
+
+      .dynamic-journey-chip {
+        font-size: 8px;
+      }
+
+      .journey-condition-badge,
+      .journey-condition-label {
+        font-size: 7px;
+      }
+
+      .journey-code-label {
+        font-size: 7px;
+      }
+
+      .journey-code-value {
+        margin-bottom: 2px;
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand-header">
+      <div class="brand-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#087f6b"/>
+  <rect x="14" y="12" width="36" height="39" rx="8" fill="#ffffff"/>
+  <rect x="19" y="18" width="26" height="12" rx="3" fill="#cfeee7"/>
+  <path d="M20 36h24M20 41h17" stroke="#087f6b" stroke-width="3"
+        stroke-linecap="round"/>
+  <circle cx="22" cy="51" r="4" fill="#173f3a"/>
+  <circle cx="42" cy="51" r="4" fill="#173f3a"/>
+  <path d="M18 15l4-5h20l4 5" fill="none" stroke="#ffffff"
+        stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div>
+      <div>
+        <h1>TXC Viewer</h1>
+        <p>Offline TXC viewing with combined timetables, journey codes and destination information.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      This viewer is read-only and runs entirely inside your browser. It does not
+      upload, modify, rename or overwrite the TXC files you select.
+    </div>
+
+    <section class="load-section">
+      <fieldset>
+        <legend>1. Load TXC data</legend>
+        <div class="load-grid">
+          <div class="field">
+            <label for="fileInput">XML or ZIP files</label>
+            <input id="fileInput" type="file"
+                   accept=".xml,.zip,text/xml,application/xml,application/zip"
+                   multiple>
+            <small>
+              Select individual TXC XML files or a ZIP produced by the Date Tool.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="folderInput">Or select a folder</label>
+            <input id="folderInput" type="file"
+                   accept=".xml,.zip,text/xml,application/xml,application/zip"
+                   multiple webkitdirectory directory>
+            <small>
+              The viewer will find XML and ZIP files inside the selected folder.
+            </small>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="loadButton" class="primary">Load timetable files</button>
+          <button id="clearButton">Clear viewer</button>
+        </div>
+      </fieldset>
+    </section>
+
+    <section id="viewerControls" class="viewer-controls hidden">
+      <fieldset>
+        <legend>2. Choose the timetable view</legend>
+
+        <div class="field" style="margin-bottom: 13px;">
+          <label for="serviceSearch">Find a service</label>
+          <input id="serviceSearch" type="search"
+                 placeholder="Search by line, service code, operator, route or filename">
+        </div>
+
+        <div class="controls-grid">
+          <div class="field">
+            <label for="serviceSelect">Service/version</label>
+            <select id="serviceSelect"></select>
+          </div>
+
+          <div class="field">
+            <label for="periodSelect">Embedded timetable/version dates</label>
+            <select id="periodSelect"></select>
+          </div>
+
+          <div class="field">
+            <label for="profileSelect">Day type</label>
+            <select id="profileSelect"></select>
+          </div>
+
+          <div class="field">
+            <label for="patternSelect">Direction</label>
+            <select id="patternSelect"></select>
+          </div>
+
+          <div class="field">
+            <label for="stopMode">Stops shown</label>
+            <select id="stopMode">
+              <option value="all">All stops</option>
+              <option value="timing">Timing points only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="csvButton" class="primary">Download timetable as Excel</button>
+          <button id="printButton">Print current timetable</button>
+        </div>
+      </fieldset>
+    </section>
+
+    <div id="status" class="status">Select XML files, a ZIP, or a folder to begin.</div>
+    <div id="message"></div>
+
+    <section id="serviceSummary" class="service-summary hidden"></section>
+    <section id="timetableArea">
+      <div class="empty-state">No timetable has been loaded.</div>
+    </section>
+
+    <div id="log" class="log">Activity log will appear here.</div>
+  </main>
+
+  <footer>
+    Offline timetable viewer with journey codes, school-day rules and dynamic destination displays.
+    Always compare unusual or complex journeys with the source system.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+const state = {
+  documents: [],
+  services: [],
+  filteredServices: [],
+  activeService: null
+};
+
+const els = {
+  fileInput: document.getElementById("fileInput"),
+  folderInput: document.getElementById("folderInput"),
+  loadButton: document.getElementById("loadButton"),
+  clearButton: document.getElementById("clearButton"),
+  viewerControls: document.getElementById("viewerControls"),
+  serviceSearch: document.getElementById("serviceSearch"),
+  serviceSelect: document.getElementById("serviceSelect"),
+  periodSelect: document.getElementById("periodSelect"),
+  profileSelect: document.getElementById("profileSelect"),
+  patternSelect: document.getElementById("patternSelect"),
+  stopMode: document.getElementById("stopMode"),
+  printButton: document.getElementById("printButton"),
+  csvButton: document.getElementById("csvButton"),
+  status: document.getElementById("status"),
+  message: document.getElementById("message"),
+  serviceSummary: document.getElementById("serviceSummary"),
+  timetableArea: document.getElementById("timetableArea"),
+  log: document.getElementById("log")
+};
+
+const DAY_LABELS = {
+  Monday: "Monday",
+  Tuesday: "Tuesday",
+  Wednesday: "Wednesday",
+  Thursday: "Thursday",
+  Friday: "Friday",
+  Saturday: "Saturday",
+  Sunday: "Sunday",
+  MondayToFriday: "Monday–Friday",
+  MondayToSaturday: "Monday–Saturday",
+  MondayToSunday: "Daily",
+  Weekend: "Saturday–Sunday",
+  NotMonday: "Except Monday",
+  NotTuesday: "Except Tuesday",
+  NotWednesday: "Except Wednesday",
+  NotThursday: "Except Thursday",
+  NotFriday: "Except Friday",
+  NotSaturday: "Except Saturday",
+  NotSunday: "Except Sunday"
+};
+
+const TIMING_LABELS = {
+  PTP: "Principal timing point",
+  TIP: "Time information point",
+  OTH: "Other stop"
+};
+
+function appendLog(message) {
+  const stamp = new Date().toLocaleTimeString();
+  const existing =
+    els.log.textContent === "Activity log will appear here."
+      ? ""
+      : els.log.textContent + "\n";
+  els.log.textContent = `${existing}[${stamp}] ${message}`;
+  els.log.scrollTop = els.log.scrollHeight;
+}
+
+function showMessage(text, type = "") {
+  els.message.innerHTML = "";
+  if (!text) return;
+
+  const box = document.createElement("div");
+  box.className = `notice ${type}`.trim();
+  box.textContent = text;
+  els.message.appendChild(box);
+}
+
+function localName(element) {
+  return element.localName || element.nodeName.split(":").pop();
+}
+
+function directChildren(element, wantedName) {
+  return Array.from(element?.children || []).filter(
+    child => localName(child) === wantedName
+  );
+}
+
+function directChild(element, wantedName) {
+  return directChildren(element, wantedName)[0] || null;
+}
+
+function allDescendants(element, wantedName) {
+  return Array.from(element?.getElementsByTagName("*") || []).filter(
+    child => localName(child) === wantedName
+  );
+}
+
+function firstDescendant(element, wantedName) {
+  return allDescendants(element, wantedName)[0] || null;
+}
+
+function nodeText(element) {
+  return element ? (element.textContent || "").trim() : "";
+}
+
+function directText(element, childName) {
+  return nodeText(directChild(element, childName));
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function parseXml(text, filename) {
+  const xml = new DOMParser().parseFromString(text, "application/xml");
+  const parserError = Array.from(xml.getElementsByTagName("*")).find(
+    element => localName(element).toLowerCase() === "parsererror"
+  );
+
+  if (parserError) {
+    const detail = nodeText(parserError).replace(/\s+/g, " ").slice(0, 260);
+    throw new Error(`${filename} is not well-formed XML. ${detail}`);
+  }
+
+  return xml;
+}
+
+function readUint16(view, offset) {
+  return view.getUint16(offset, true);
+}
+
+function readUint32(view, offset) {
+  return view.getUint32(offset, true);
+}
+
+function findEndOfCentralDirectory(bytes) {
+  const minimum = Math.max(0, bytes.length - 65557);
+  for (let offset = bytes.length - 22; offset >= minimum; offset--) {
+    if (
+      bytes[offset] === 0x50 &&
+      bytes[offset + 1] === 0x4b &&
+      bytes[offset + 2] === 0x05 &&
+      bytes[offset + 3] === 0x06
+    ) {
+      return offset;
+    }
+  }
+  return -1;
+}
+
+async function inflateRaw(compressedBytes) {
+  if (!("DecompressionStream" in window)) {
+    throw new Error(
+      "This ZIP uses compression that this Edge version cannot unpack. " +
+      "Extract the ZIP first and select the XML files."
+    );
+  }
+
+  const stream = new Blob([compressedBytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
+
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function extractXmlFromZip(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const eocd = findEndOfCentralDirectory(bytes);
+
+  if (eocd < 0) {
+    throw new Error(`${file.name} is not a readable ZIP file.`);
+  }
+
+  const entryCount = readUint16(view, eocd + 10);
+  let centralOffset = readUint32(view, eocd + 16);
+  const decoder = new TextDecoder("utf-8");
+  const extracted = [];
+
+  for (let index = 0; index < entryCount; index++) {
+    if (readUint32(view, centralOffset) !== 0x02014b50) {
+      throw new Error(`${file.name} has an invalid ZIP directory.`);
+    }
+
+    const flags = readUint16(view, centralOffset + 8);
+    const method = readUint16(view, centralOffset + 10);
+    const compressedSize = readUint32(view, centralOffset + 20);
+    const filenameLength = readUint16(view, centralOffset + 28);
+    const extraLength = readUint16(view, centralOffset + 30);
+    const commentLength = readUint16(view, centralOffset + 32);
+    const localOffset = readUint32(view, centralOffset + 42);
+
+    const filenameBytes = bytes.slice(
+      centralOffset + 46,
+      centralOffset + 46 + filenameLength
+    );
+    const filename = decoder.decode(filenameBytes).replaceAll("\\", "/");
+
+    centralOffset += 46 + filenameLength + extraLength + commentLength;
+
+    if (
+      filename.endsWith("/") ||
+      !filename.toLowerCase().endsWith(".xml") ||
+      filename.includes("__MACOSX/")
+    ) {
+      continue;
+    }
+
+    if (flags & 0x0001) {
+      throw new Error(`${filename} is encrypted and cannot be opened.`);
+    }
+
+    if (readUint32(view, localOffset) !== 0x04034b50) {
+      throw new Error(`${filename} has an invalid ZIP entry.`);
+    }
+
+    const localNameLength = readUint16(view, localOffset + 26);
+    const localExtraLength = readUint16(view, localOffset + 28);
+    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+    const compressed = bytes.slice(dataStart, dataStart + compressedSize);
+
+    let uncompressed;
+    if (method === 0) {
+      uncompressed = compressed;
+    } else if (method === 8) {
+      uncompressed = await inflateRaw(compressed);
+    } else {
+      throw new Error(
+        `${filename} uses unsupported ZIP compression method ${method}.`
+      );
+    }
+
+    extracted.push({
+      name: `${file.name} › ${filename}`,
+      bytes: uncompressed
+    });
+  }
+
+  if (extracted.length === 0) {
+    throw new Error(`${file.name} contains no XML files.`);
+  }
+
+  return extracted;
+}
+
+function decodeUtf8Xml(bytes, filename) {
+  let offset = 0;
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xef &&
+    bytes[1] === 0xbb &&
+    bytes[2] === 0xbf
+  ) {
+    offset = 3;
+  }
+
+  const header = new TextDecoder("ascii").decode(
+    bytes.slice(offset, Math.min(bytes.length, offset + 512))
+  );
+  const encoding = header.match(
+    /<\?xml[^>]*encoding=["']\s*([^"']+?)\s*["']/i
+  );
+
+  if (encoding) {
+    const declared = encoding[1].toLowerCase().replaceAll("_", "-");
+    if (!["utf-8", "utf8"].includes(declared)) {
+      throw new Error(
+        `${filename} declares ${encoding[1]} encoding. ` +
+        "This viewer currently supports UTF-8 TXC files."
+      );
+    }
+  }
+
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(offset));
+  } catch {
+    throw new Error(`${filename} is not valid UTF-8 XML.`);
+  }
+}
+
+async function collectInputDocuments() {
+  const selected = [
+    ...Array.from(els.fileInput.files || []),
+    ...Array.from(els.folderInput.files || [])
+  ];
+
+  const useful = selected.filter(file => {
+    const lower = file.name.toLowerCase();
+    return lower.endsWith(".xml") || lower.endsWith(".zip");
+  });
+
+  if (useful.length === 0) {
+    throw new Error("Select at least one TXC XML file, ZIP file, or folder.");
+  }
+
+  const seen = new Set();
+  const documents = [];
+  let documentCounter = 0;
+
+  for (const file of useful) {
+    const identity = [
+      file.webkitRelativePath || file.name,
+      file.size,
+      file.lastModified
+    ].join("|");
+
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+
+    const lower = file.name.toLowerCase();
+    let candidates;
+
+    if (lower.endsWith(".zip")) {
+      appendLog(`Opening ZIP: ${file.name}`);
+      candidates = await extractXmlFromZip(file);
+    } else {
+      candidates = [{
+        name: file.webkitRelativePath || file.name,
+        bytes: new Uint8Array(await file.arrayBuffer())
+      }];
+    }
+
+    for (const candidate of candidates) {
+      const text = decodeUtf8Xml(candidate.bytes, candidate.name);
+      const xml = parseXml(text, candidate.name);
+      documents.push({
+        id: `DOC${++documentCounter}`,
+        name: candidate.name,
+        text,
+        xml
+      });
+    }
+  }
+
+  return documents;
+}
+
+function parseDurationSeconds(value) {
+  if (!value) return 0;
+
+  const match = String(value).trim().match(
+    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i
+  );
+  if (!match) return 0;
+
+  return (
+    Number(match[1] || 0) * 86400 +
+    Number(match[2] || 0) * 3600 +
+    Number(match[3] || 0) * 60 +
+    Number(match[4] || 0)
+  );
+}
+
+function parseClockSeconds(value) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3] || 0);
+
+  if (minutes > 59 || seconds > 59) return null;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function formatClock(seconds) {
+  if (!Number.isFinite(seconds)) return "—";
+
+  const day = Math.floor(seconds / 86400);
+  const withinDay = ((Math.round(seconds) % 86400) + 86400) % 86400;
+  const hours = Math.floor(withinDay / 3600);
+  const minutes = Math.floor((withinDay % 3600) / 60);
+  const base = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+
+  return day > 0
+    ? `${base}<span class="day-offset">+${day}</span>`
+    : base;
+}
+
+function endpointData(endpoint) {
+  if (!endpoint) {
+    return {
+      stopRef: "",
+      timingStatus: "",
+      activity: "",
+      waitTime: 0,
+      sequenceNumber: "",
+      dynamicDestinationDisplay: ""
+    };
+  }
+
+  return {
+    stopRef: directText(endpoint, "StopPointRef"),
+    timingStatus: directText(endpoint, "TimingStatus"),
+    activity: directText(endpoint, "Activity"),
+    waitTime: parseDurationSeconds(directText(endpoint, "WaitTime")),
+    sequenceNumber: endpoint.getAttribute("SequenceNumber") || "",
+    dynamicDestinationDisplay:
+      directText(endpoint, "DynamicDestinationDisplay")
+  };
+}
+
+function parseOperators(xml) {
+  const operators = new Map();
+
+  for (const operator of allDescendants(xml, "Operator")) {
+    const id = operator.getAttribute("id") || "";
+    if (!id) continue;
+
+    operators.set(id, {
+      id,
+      shortName: directText(operator, "OperatorShortName"),
+      operatorCode: directText(operator, "OperatorCode"),
+      nationalCode: directText(operator, "NationalOperatorCode")
+    });
+  }
+
+  return operators;
+}
+
+function parseStops(xml) {
+  const stops = new Map();
+
+  for (const item of allDescendants(xml, "AnnotatedStopPointRef")) {
+    const ref = directText(item, "StopPointRef");
+    if (!ref) continue;
+
+    const location = directChild(item, "Location");
+    stops.set(ref, {
+      ref,
+      name: directText(item, "CommonName") || ref,
+      latitude: location ? directText(location, "Latitude") : "",
+      longitude: location ? directText(location, "Longitude") : ""
+    });
+  }
+
+  return stops;
+}
+
+function parseJourneyPatternSections(xml) {
+  const sections = new Map();
+
+  for (const section of allDescendants(xml, "JourneyPatternSection")) {
+    const id = section.getAttribute("id") || "";
+    if (!id) continue;
+
+    const links = directChildren(section, "JourneyPatternTimingLink").map(link => ({
+      id: link.getAttribute("id") || "",
+      from: endpointData(directChild(link, "From")),
+      to: endpointData(directChild(link, "To")),
+      runTime: parseDurationSeconds(directText(link, "RunTime"))
+    }));
+
+    sections.set(id, { id, links });
+  }
+
+  return sections;
+}
+
+function parseDateRangeContainer(container) {
+  if (!container) return [];
+
+  const ranges = [];
+
+  for (const range of directChildren(container, "DateRange")) {
+    const start = directText(range, "StartDate");
+    const end = directText(range, "EndDate");
+    if (start || end) {
+      ranges.push({ start, end });
+    }
+  }
+
+  for (const dateNode of directChildren(container, "Date")) {
+    const value = nodeText(dateNode);
+    if (value) {
+      ranges.push({ start: value, end: value });
+    }
+  }
+
+  return ranges;
+}
+
+function parseServicedOrganisations(xml) {
+  const organisations = new Map();
+
+  for (const organisation of allDescendants(xml, "ServicedOrganisation")) {
+    const code = directText(organisation, "OrganisationCode");
+    if (!code) continue;
+
+    organisations.set(code, {
+      code,
+      name: directText(organisation, "Name") || code,
+      workingDays: parseDateRangeContainer(
+        directChild(organisation, "WorkingDays")
+      ),
+      holidays: parseDateRangeContainer(
+        directChild(organisation, "Holidays")
+      )
+    });
+  }
+
+  return organisations;
+}
+
+function formatDateRange(range) {
+  if (!range) return "";
+  if (range.start && range.end && range.start !== range.end) {
+    return `${range.start} to ${range.end}`;
+  }
+  return range.start || range.end || "";
+}
+
+function servicedOrganisationConditions(profile, organisations) {
+  const result = [];
+  if (!profile) return result;
+
+  const dayType = directChild(profile, "ServicedOrganisationDayType");
+  if (!dayType) return result;
+
+  for (const operationName of ["DaysOfOperation", "DaysOfNonOperation"]) {
+    const operation = directChild(dayType, operationName);
+    if (!operation) continue;
+
+    const operates = operationName === "DaysOfOperation";
+
+    for (const category of Array.from(operation.children || [])) {
+      const categoryName = localName(category);
+      const refs = allDescendants(category, "ServicedOrganisationRef")
+        .map(nodeText)
+        .filter(Boolean);
+
+      for (const code of refs) {
+        const organisation = organisations.get(code) || {
+          code,
+          name: code,
+          workingDays: [],
+          holidays: []
+        };
+
+        let label;
+        let badgeClass;
+        let ranges;
+
+        if (categoryName === "WorkingDays") {
+          ranges = organisation.workingDays;
+          if (operates) {
+            label = `${organisation.name} working days (school days)`;
+            badgeClass = "school-days";
+          } else {
+            label =
+              `Not ${organisation.name} working days ` +
+              `(school holidays/non-school days)`;
+            badgeClass = "non-school-days";
+          }
+        } else if (categoryName === "Holidays") {
+          ranges = organisation.holidays;
+          if (operates) {
+            label = `${organisation.name} holidays`;
+            badgeClass = "non-school-days";
+          } else {
+            label = `Not ${organisation.name} holidays`;
+            badgeClass = "school-days";
+          }
+        } else {
+          ranges = [];
+          label =
+            `${operates ? "Runs on" : "Does not run on"} ` +
+            `${organisation.name} ${categoryName}`;
+          badgeClass = operates ? "school-days" : "non-school-days";
+        }
+
+        result.push({
+          code,
+          organisationName: organisation.name,
+          category: categoryName,
+          operates,
+          label,
+          badgeClass,
+          ranges
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+function parseJourneyNotes(vehicleJourney) {
+  return directChildren(vehicleJourney, "Note")
+    .map(note => ({
+      code: directText(note, "NoteCode"),
+      text: directText(note, "NoteText")
+    }))
+    .filter(note => note.code || note.text);
+}
+
+function dayCategoriesFromProfile(
+  dayCodes,
+  bankHolidayOnly,
+  bankHolidayOperates,
+  schooldaysOnly
+) {
+  const categories = new Set();
+
+  if (bankHolidayOnly || bankHolidayOperates) {
+    categories.add("bank-holiday");
+  }
+
+  for (const code of dayCodes) {
+    if (
+      [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "MondayToFriday",
+        "MondayToSaturday",
+        "MondayToSunday",
+        "NotMonday",
+        "NotTuesday",
+        "NotWednesday",
+        "NotThursday",
+        "NotFriday",
+        "NotSaturday",
+        "NotSunday"
+      ].includes(code)
+    ) {
+      categories.add("weekday");
+    }
+
+    if (
+      [
+        "Saturday",
+        "Weekend",
+        "MondayToSaturday",
+        "MondayToSunday",
+        "NotMonday",
+        "NotTuesday",
+        "NotWednesday",
+        "NotThursday",
+        "NotFriday",
+        "NotSunday"
+      ].includes(code)
+    ) {
+      categories.add("saturday");
+    }
+
+    if (
+      [
+        "Sunday",
+        "Weekend",
+        "MondayToSunday",
+        "NotMonday",
+        "NotTuesday",
+        "NotWednesday",
+        "NotThursday",
+        "NotFriday",
+        "NotSaturday"
+      ].includes(code)
+    ) {
+      categories.add("sunday");
+    }
+  }
+
+  if (schooldaysOnly && categories.size === 0) {
+    categories.add("weekday");
+  }
+
+  return Array.from(categories);
+}
+
+function parseOperatingProfile(profile, organisations = new Map()) {
+  if (!profile) {
+    return {
+      label: "Unspecified",
+      key: "Unspecified",
+      exceptions: [],
+      organisationConditions: [],
+      dayCodes: [],
+      dayCategories: [],
+      bankHolidayOnly: false,
+      bankHolidayOperates: false,
+      schooldaysOnly: false
+    };
+  }
+
+  const regular = directChild(profile, "RegularDayType");
+  const daysOfWeek = regular ? firstDescendant(regular, "DaysOfWeek") : null;
+  const dayNodes = Array.from(daysOfWeek?.children || []);
+  const dayCodes = dayNodes.map(node => localName(node));
+  const dayParts = dayCodes.map(code => DAY_LABELS[code] || code);
+
+  const bankHolidayOnly = Boolean(
+    regular && directChild(regular, "HolidaysOnly")
+  );
+  const schooldaysOnly = Boolean(
+    regular && directChild(regular, "SchooldaysOnly")
+  );
+
+  if (bankHolidayOnly) {
+    dayParts.push("Bank holidays only");
+  }
+
+  if (schooldaysOnly) {
+    dayParts.push("School days only");
+  }
+
+  const organisationConditions =
+    servicedOrganisationConditions(profile, organisations);
+
+  let label = dayParts.join(", ");
+  if (!label) {
+    label = "Unspecified";
+  }
+
+  if (organisationConditions.length) {
+    label +=
+      " · " +
+      organisationConditions.map(condition => condition.label).join("; ");
+  }
+
+  const exceptions = [];
+  let bankHolidayOperates = false;
+
+  const special = directChild(profile, "SpecialDaysOperation");
+  if (special) {
+    for (const operationName of ["DaysOfOperation", "DaysOfNonOperation"]) {
+      const container = directChild(special, operationName);
+      if (!container) continue;
+
+      const prefix =
+        operationName === "DaysOfOperation"
+          ? "Operates additionally"
+          : "Does not operate";
+
+      for (const range of allDescendants(container, "DateRange")) {
+        const start = directText(range, "StartDate");
+        const end = directText(range, "EndDate");
+        if (start || end) {
+          exceptions.push(
+            start === end
+              ? `${prefix} on ${start || end}`
+              : `${prefix} from ${start || "?"} to ${end || "?"}`
+          );
+        }
+      }
+
+      for (const dateNode of allDescendants(container, "Date")) {
+        const value = nodeText(dateNode);
+        if (value) exceptions.push(`${prefix} on ${value}`);
+      }
+    }
+  }
+
+  const bankHoliday = directChild(profile, "BankHolidayOperation");
+  if (bankHoliday) {
+    for (const operationName of ["DaysOfOperation", "DaysOfNonOperation"]) {
+      const container = directChild(bankHoliday, operationName);
+      if (!container) continue;
+
+      const holidays = Array.from(container.children || [])
+        .map(node => localName(node));
+
+      if (holidays.length) {
+        if (operationName === "DaysOfOperation") {
+          bankHolidayOperates = true;
+        }
+
+        exceptions.push(
+          `${operationName === "DaysOfOperation" ? "Operates" : "Does not operate"} ` +
+          `on: ${holidays.join(", ")}`
+        );
+      }
+    }
+  }
+
+  const dayCategories = dayCategoriesFromProfile(
+    dayCodes,
+    bankHolidayOnly,
+    bankHolidayOperates,
+    schooldaysOnly
+  );
+
+  const conditionKey = organisationConditions
+    .map(condition =>
+      `${condition.code}:${condition.category}:${condition.operates ? "on" : "off"}`
+    )
+    .join("|");
+
+  return {
+    label,
+    key: `${label}||${conditionKey}`,
+    exceptions,
+    organisationConditions,
+    dayCodes,
+    dayCategories,
+    bankHolidayOnly,
+    bankHolidayOperates,
+    schooldaysOnly
+  };
+}
+
+function profileDateEnvelope(profile) {
+  const dates = profile.organisationConditions
+    .flatMap(condition => condition.ranges)
+    .flatMap(range => [range.start, range.end])
+    .filter(value => /^\d{4}-\d{2}-\d{2}$/.test(value || ""))
+    .sort();
+
+  return dates.length
+    ? { start: dates[0], end: dates[dates.length - 1] }
+    : { start: "", end: "" };
+}
+
+function buildTimetablePeriods(journeys, serviceStart, serviceEnd) {
+  const dated = journeys
+    .filter(journey => journey.effectiveStart && journey.effectiveEnd)
+    .sort((a, b) =>
+      a.effectiveStart.localeCompare(b.effectiveStart) ||
+      a.effectiveEnd.localeCompare(b.effectiveEnd)
+    );
+
+  if (!dated.length) {
+    return [{
+      id: "PERIOD1",
+      start: serviceStart,
+      end: serviceEnd,
+      journeyIds: new Set(journeys.map(journey => journey.id))
+    }];
+  }
+
+  const periods = [];
+  for (const journey of dated) {
+    const current = periods[periods.length - 1];
+
+    // WDMS keeps each source timetable as a connected group of calendar
+    // ranges. A genuine gap between envelopes marks the next timetable
+    // version; overlapping ranges belong to the same version.
+    if (!current || journey.effectiveStart > current.end) {
+      periods.push({
+        id: `PERIOD${periods.length + 1}`,
+        start: journey.effectiveStart,
+        end: journey.effectiveEnd,
+        journeyIds: new Set([journey.id])
+      });
+    } else {
+      if (journey.effectiveEnd > current.end) {
+        current.end = journey.effectiveEnd;
+      }
+      current.journeyIds.add(journey.id);
+    }
+  }
+
+  const undated = journeys.filter(
+    journey => !journey.effectiveStart || !journey.effectiveEnd
+  );
+  for (const period of periods) {
+    for (const journey of undated) period.journeyIds.add(journey.id);
+  }
+
+  return periods;
+}
+
+
+function ticketMachineJourneyCode(vehicleJourney) {
+  const operational = directChild(vehicleJourney, "Operational");
+  if (!operational) return "";
+
+  const ticketMachine =
+    directChild(operational, "TicketMachine") ||
+    firstDescendant(operational, "TicketMachine");
+
+  return ticketMachine ? directText(ticketMachine, "JourneyCode") : "";
+}
+
+function parseVehicleJourneyOverrides(vehicleJourney) {
+  const overrides = new Map();
+
+  for (const item of directChildren(vehicleJourney, "VehicleJourneyTimingLink")) {
+    const ref = directText(item, "JourneyPatternTimingLinkRef");
+    if (!ref) continue;
+
+    const from = directChild(item, "From");
+    const to = directChild(item, "To");
+
+    overrides.set(ref, {
+      runTime:
+        directChild(item, "RunTime")
+          ? parseDurationSeconds(directText(item, "RunTime"))
+          : null,
+      fromWait:
+        from && directChild(from, "WaitTime")
+          ? parseDurationSeconds(directText(from, "WaitTime"))
+          : null,
+      toWait:
+        to && directChild(to, "WaitTime")
+          ? parseDurationSeconds(directText(to, "WaitTime"))
+          : null,
+      fromDynamicDestinationDisplay:
+        from && directChild(from, "DynamicDestinationDisplay")
+          ? directText(from, "DynamicDestinationDisplay")
+          : null,
+      toDynamicDestinationDisplay:
+        to && directChild(to, "DynamicDestinationDisplay")
+          ? directText(to, "DynamicDestinationDisplay")
+          : null
+    });
+  }
+
+  return overrides;
+}
+
+function parseVehicleJourneys(xml, organisations = new Map()) {
+  return allDescendants(xml, "VehicleJourney").map((vehicleJourney, index) => {
+    const profile = parseOperatingProfile(
+      directChild(vehicleJourney, "OperatingProfile"),
+      organisations
+    );
+    const effectivePeriod = profileDateEnvelope(profile);
+
+    return {
+      id: `VJ${index + 1}`,
+      code:
+        directText(vehicleJourney, "VehicleJourneyCode") ||
+        directText(vehicleJourney, "PrivateCode") ||
+        `Journey ${index + 1}`,
+      privateCode: directText(vehicleJourney, "PrivateCode"),
+      ticketMachineJourneyCode: ticketMachineJourneyCode(vehicleJourney),
+      notes: parseJourneyNotes(vehicleJourney),
+      serviceRef: directText(vehicleJourney, "ServiceRef"),
+      lineRef: directText(vehicleJourney, "LineRef"),
+      journeyPatternRef: directText(vehicleJourney, "JourneyPatternRef"),
+      departureTime: directText(vehicleJourney, "DepartureTime"),
+      departureSeconds: parseClockSeconds(
+        directText(vehicleJourney, "DepartureTime")
+      ),
+      direction: directText(vehicleJourney, "Direction"),
+      operatorRef: directText(vehicleJourney, "OperatorRef"),
+      effectiveStart: effectivePeriod.start,
+      effectiveEnd: effectivePeriod.end,
+      profile,
+      overrides: parseVehicleJourneyOverrides(vehicleJourney)
+    };
+  });
+}
+
+function buildPattern(sectionRefs, sections, stopMap, warnings) {
+  const links = [];
+
+  for (const ref of sectionRefs) {
+    const section = sections.get(ref);
+    if (!section) {
+      warnings.push(`JourneyPatternSection ${ref} was not found.`);
+      continue;
+    }
+    links.push(...section.links);
+  }
+
+  if (!links.length) {
+    return { links: [], stops: [], dynamicDestinations: [] };
+  }
+
+  const stops = [];
+
+  function makeStop(endpoint) {
+    const stop = stopMap.get(endpoint.stopRef);
+    return {
+      ref: endpoint.stopRef,
+      name: stop?.name || endpoint.stopRef || "Unknown stop",
+      timingStatus: endpoint.timingStatus,
+      activity: endpoint.activity,
+      latitude: stop?.latitude || "",
+      longitude: stop?.longitude || ""
+    };
+  }
+
+  stops.push(makeStop(links[0].from));
+
+  for (let index = 0; index < links.length; index++) {
+    const link = links[index];
+
+    if (
+      index > 0 &&
+      link.from.stopRef &&
+      stops[stops.length - 1]?.ref !== link.from.stopRef
+    ) {
+      warnings.push(
+        `A journey pattern section joins ${stops[stops.length - 1]?.ref || "?"} ` +
+        `to ${link.from.stopRef} without a matching boundary stop.`
+      );
+      stops.push(makeStop(link.from));
+    }
+
+    stops.push(makeStop(link.to));
+  }
+
+  const dynamicDestinations = [];
+
+  for (const link of links) {
+    for (const endpointName of ["from", "to"]) {
+      const endpoint = link[endpointName];
+      if (!endpoint?.dynamicDestinationDisplay) continue;
+
+      const stop = stopMap.get(endpoint.stopRef);
+      dynamicDestinations.push({
+        timingLinkId: link.id,
+        endpoint: endpointName,
+        sequenceNumber: endpoint.sequenceNumber,
+        stopRef: endpoint.stopRef,
+        stopName:
+          stop?.name || endpoint.stopRef || "Unknown stop",
+        display: endpoint.dynamicDestinationDisplay
+      });
+    }
+  }
+
+  return { links, stops, dynamicDestinations };
+}
+
+function parseServicesFromDocument(documentRecord) {
+  const xml = documentRecord.xml;
+  const operators = parseOperators(xml);
+  const stops = parseStops(xml);
+  const sections = parseJourneyPatternSections(xml);
+  const servicedOrganisations = parseServicedOrganisations(xml);
+  const allJourneys = parseVehicleJourneys(xml, servicedOrganisations);
+  const services = [];
+
+  const serviceElements = allDescendants(xml, "Service");
+
+  serviceElements.forEach((serviceElement, serviceIndex) => {
+    const warnings = [];
+    const code = directText(serviceElement, "ServiceCode");
+
+    if (!code) {
+      warnings.push("Service has no ServiceCode.");
+    }
+
+    const linesContainer = directChild(serviceElement, "Lines");
+    const lines = linesContainer
+      ? directChildren(linesContainer, "Line").map(line => ({
+          id: line.getAttribute("id") || "",
+          name: directText(line, "LineName")
+        }))
+      : [];
+
+    const operatingPeriod = directChild(serviceElement, "OperatingPeriod");
+    const startDate = operatingPeriod
+      ? directText(operatingPeriod, "StartDate")
+      : "";
+    const endDate = operatingPeriod
+      ? directText(operatingPeriod, "EndDate")
+      : "";
+
+    if (!operatingPeriod) {
+      warnings.push("Service has no OperatingPeriod.");
+    }
+
+    const registeredOperatorRef = directText(
+      serviceElement,
+      "RegisteredOperatorRef"
+    );
+
+    const standardService = directChild(serviceElement, "StandardService");
+    const patterns = [];
+    const publishedOrigin = standardService
+      ? directText(standardService, "Origin")
+      : "";
+    const publishedDestination = standardService
+      ? directText(standardService, "Destination")
+      : "";
+
+    if (standardService) {
+      directChildren(standardService, "JourneyPattern").forEach(
+        (patternElement, patternIndex) => {
+          const id =
+            patternElement.getAttribute("id") ||
+            `Pattern ${patternIndex + 1}`;
+
+          const refs = directChildren(
+            patternElement,
+            "JourneyPatternSectionRefs"
+          ).flatMap(item =>
+            nodeText(item).split(/\s+/).filter(Boolean)
+          );
+
+          const built = buildPattern(refs, sections, stops, warnings);
+
+          patterns.push({
+            id,
+            destinationDisplay: directText(
+              patternElement,
+              "DestinationDisplay"
+            ),
+            direction: directText(patternElement, "Direction"),
+            routeRef: directText(patternElement, "RouteRef"),
+            sectionRefs: refs,
+            links: built.links,
+            stops: built.stops,
+            dynamicDestinations: built.dynamicDestinations
+          });
+        }
+      );
+    }
+
+    if (!patterns.length) {
+      warnings.push("No StandardService JourneyPattern records were found.");
+    }
+
+    const journeys = allJourneys.filter(
+      journey => !code || journey.serviceRef === code
+    );
+    const timetablePeriods = buildTimetablePeriods(
+      journeys,
+      startDate,
+      endDate
+    );
+
+    for (const journey of journeys) {
+      if (!journey.journeyPatternRef) {
+        warnings.push(`${journey.code} has no JourneyPatternRef.`);
+      } else if (!patterns.some(pattern => pattern.id === journey.journeyPatternRef)) {
+        warnings.push(
+          `${journey.code} refers to missing pattern ${journey.journeyPatternRef}.`
+        );
+      }
+
+      if (journey.departureSeconds === null) {
+        warnings.push(`${journey.code} has no readable DepartureTime.`);
+      }
+
+      if (!journey.ticketMachineJourneyCode) {
+        warnings.push(
+          `${journey.code} has no Operational/TicketMachine/JourneyCode.`
+        );
+      }
+
+      for (const condition of journey.profile.organisationConditions) {
+        if (
+          condition.organisationName === condition.code &&
+          !servicedOrganisations.has(condition.code)
+        ) {
+          warnings.push(
+            `${journey.code} refers to undefined ServicedOrganisation ` +
+            `${condition.code}.`
+          );
+        }
+      }
+    }
+
+    const firstJourneyOperator = journeys
+      .map(journey => operators.get(journey.operatorRef))
+      .find(Boolean);
+
+    const registeredOperator = operators.get(registeredOperatorRef);
+    const operator = registeredOperator || firstJourneyOperator || {
+      shortName: registeredOperatorRef || "Unknown operator",
+      operatorCode: "",
+      nationalCode: ""
+    };
+
+    const lineName =
+      lines.map(line => line.name).filter(Boolean).join(", ") ||
+      journeys.map(journey => journey.lineRef).find(Boolean) ||
+      "Unspecified line";
+
+    services.push({
+      id: `${documentRecord.id}::S${serviceIndex + 1}`,
+      documentId: documentRecord.id,
+      filename: documentRecord.name,
+      code,
+      lineName,
+      description: directText(serviceElement, "Description"),
+      direction: directText(serviceElement, "Direction"),
+      startDate,
+      endDate,
+      operator,
+      patterns,
+      publishedOrigin,
+      publishedDestination,
+      journeys,
+      timetablePeriods,
+      warnings: Array.from(new Set(warnings))
+    });
+  });
+
+  return services;
+}
+
+function serviceOptionLabel(service) {
+  const operator =
+    service.operator.shortName ||
+    service.operator.operatorCode ||
+    "Unknown operator";
+  const period = `${service.startDate || "no start"} → ${service.endDate || "open"}`;
+
+  return `${service.lineName} — ${service.description || service.code} — ` +
+    `${operator} — ${period} — ${service.filename}`;
+}
+
+function serviceSearchText(service) {
+  return [
+    service.lineName,
+    service.code,
+    service.description,
+    service.operator.shortName,
+    service.operator.operatorCode,
+    service.operator.nationalCode,
+    service.startDate,
+    service.endDate,
+    service.filename
+  ].join(" ").toLowerCase();
+}
+
+function sortServices(services) {
+  return [...services].sort((a, b) => {
+    const operatorA = a.operator.shortName || a.operator.operatorCode || "";
+    const operatorB = b.operator.shortName || b.operator.operatorCode || "";
+
+    return (
+      operatorA.localeCompare(operatorB, undefined, { numeric: true }) ||
+      a.lineName.localeCompare(b.lineName, undefined, { numeric: true }) ||
+      a.startDate.localeCompare(b.startDate) ||
+      a.filename.localeCompare(b.filename)
+    );
+  });
+}
+
+function refreshServiceOptions(preserveId = "") {
+  const query = els.serviceSearch.value.trim().toLowerCase();
+
+  state.filteredServices = state.services.filter(service =>
+    !query || serviceSearchText(service).includes(query)
+  );
+
+  els.serviceSelect.innerHTML = "";
+
+  for (const service of state.filteredServices) {
+    const option = document.createElement("option");
+    option.value = service.id;
+    option.textContent = serviceOptionLabel(service);
+    els.serviceSelect.appendChild(option);
+  }
+
+  if (!state.filteredServices.length) {
+    state.activeService = null;
+    renderNoMatchingService();
+    return;
+  }
+
+  const selected =
+    state.filteredServices.find(service => service.id === preserveId) ||
+    state.filteredServices[0];
+
+  els.serviceSelect.value = selected.id;
+  selectService(selected.id);
+}
+
+function selectService(serviceId) {
+  const service = state.services.find(item => item.id === serviceId);
+  if (!service) {
+    state.activeService = null;
+    renderNoMatchingService();
+    return;
+  }
+
+  state.activeService = service;
+  refreshPeriodOptions();
+  refreshProfileOptions();
+  refreshPatternOptions();
+  renderActiveService();
+}
+
+const SIMPLE_DAY_TYPES = [
+  { key: "weekday", label: "Monday to Friday" },
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" },
+  { key: "bank-holiday", label: "Bank Holiday" }
+];
+
+function journeyPatternFor(service, journey) {
+  return service.patterns.find(
+    pattern => pattern.id === journey.journeyPatternRef
+  ) || null;
+}
+
+function journeyDirectionFor(service, journey) {
+  const pattern = journeyPatternFor(service, journey);
+  return pattern?.direction || journey.direction || "unspecified";
+}
+
+function selectedTimetablePeriod(service = state.activeService) {
+  if (!service) return null;
+  return service.timetablePeriods.find(
+    period => period.id === els.periodSelect.value
+  ) || service.timetablePeriods[0] || null;
+}
+
+function periodLabel(period, multiple) {
+  if (!period) return "Operating dates not stated";
+  const range = `${period.start || "Start not stated"} → ` +
+    `${period.end || "Open ended"}`;
+  return multiple ? `Timetable ${range}` : range;
+}
+
+function refreshPeriodOptions() {
+  const service = state.activeService;
+  const previous = els.periodSelect.value;
+  els.periodSelect.innerHTML = "";
+
+  const periods = service.timetablePeriods || [];
+  for (const period of periods) {
+    const option = document.createElement("option");
+    option.value = period.id;
+    option.textContent = periodLabel(period, periods.length > 1);
+    els.periodSelect.appendChild(option);
+  }
+
+  els.periodSelect.value = periods.some(period => period.id === previous)
+    ? previous
+    : (periods[periods.length - 1]?.id || "");
+  els.periodSelect.disabled = periods.length <= 1;
+}
+
+function journeysForPeriod(service) {
+  const period = selectedTimetablePeriod(service);
+  if (!period) return service.journeys;
+  return service.journeys.filter(journey => period.journeyIds.has(journey.id));
+}
+
+function journeysForDay(service, dayType) {
+  return journeysForPeriod(service).filter(
+    journey => journey.profile.dayCategories.includes(dayType)
+  );
+}
+
+function refreshProfileOptions() {
+  const service = state.activeService;
+  const previous = els.profileSelect.value;
+  els.profileSelect.innerHTML = "";
+
+  let firstAvailable = "";
+
+  for (const dayType of SIMPLE_DAY_TYPES) {
+    const available = journeysForDay(service, dayType.key).length > 0;
+    const option = document.createElement("option");
+    option.value = dayType.key;
+    option.textContent = dayType.label;
+    option.disabled = !available;
+    els.profileSelect.appendChild(option);
+
+    if (available && !firstAvailable) {
+      firstAvailable = dayType.key;
+    }
+  }
+
+  const previousStillAvailable = Array.from(
+    els.profileSelect.options
+  ).some(option => option.value === previous && !option.disabled);
+
+  els.profileSelect.value = previousStillAvailable
+    ? previous
+    : firstAvailable;
+}
+
+function mostCommonDestination(service, journeys, direction) {
+  const counts = new Map();
+
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    const destination = pattern?.destinationDisplay || "";
+    if (!destination) continue;
+    counts.set(destination, (counts.get(destination) || 0) + 1);
+  }
+
+  const sorted = Array.from(counts.entries()).sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
+  );
+
+  return sorted[0]?.[0] || "";
+}
+
+function directionLabel(service, direction, journeys) {
+  const base =
+    direction === "outbound"
+      ? "Outbound"
+      : direction === "inbound"
+        ? "Inbound"
+        : "Direction not stated";
+
+  const destination = mostCommonDestination(service, journeys, direction);
+  return destination ? `${base} — towards ${destination}` : base;
+}
+
+function refreshPatternOptions() {
+  const service = state.activeService;
+  const previous = els.patternSelect.value;
+  const dayType = els.profileSelect.value;
+  const dayJourneys = journeysForDay(service, dayType);
+
+  const directions = Array.from(
+    new Set(dayJourneys.map(journey =>
+      journeyDirectionFor(service, journey)
+    ))
+  ).sort((a, b) => {
+    const order = { outbound: 0, inbound: 1, unspecified: 2 };
+    return (order[a] ?? 9) - (order[b] ?? 9) || a.localeCompare(b);
+  });
+
+  els.patternSelect.innerHTML = "";
+
+  for (const direction of directions) {
+    const directionJourneys = dayJourneys.filter(
+      journey => journeyDirectionFor(service, journey) === direction
+    );
+    const option = document.createElement("option");
+    option.value = direction;
+    option.textContent = directionLabel(
+      service,
+      direction,
+      directionJourneys
+    );
+    els.patternSelect.appendChild(option);
+  }
+
+  els.patternSelect.value = directions.includes(previous)
+    ? previous
+    : (directions[0] || "");
+}
+
+
+function patternDisplayName(pattern, index) {
+  const first = pattern.stops[0]?.name || "Unknown start";
+  const last = pattern.stops[pattern.stops.length - 1]?.name || "Unknown end";
+  return `${pattern.id}: ${first} → ${last}` +
+    (pattern.destinationDisplay ? ` — ${pattern.destinationDisplay}` : "");
+}
+
+function legacyRefreshPatternOptions() {
+  const service = state.activeService;
+  els.patternSelect.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "__ALL__";
+  allOption.textContent = "All journey patterns";
+  els.patternSelect.appendChild(allOption);
+
+  service.patterns.forEach((pattern, index) => {
+    const option = document.createElement("option");
+    option.value = pattern.id;
+    option.textContent = patternDisplayName(pattern, index);
+    els.patternSelect.appendChild(option);
+  });
+}
+
+function matchingJourneys(pattern) {
+  const profile = els.profileSelect.value;
+  return journeysForPeriod(state.activeService)
+    .filter(journey => journey.journeyPatternRef === pattern.id)
+    .filter(journey => profile === "__ALL__" || journey.profile.key === profile)
+    .filter(journey => journey.departureSeconds !== null)
+    .sort((a, b) =>
+      a.departureSeconds - b.departureSeconds ||
+      a.profile.label.localeCompare(b.profile.label) ||
+      a.code.localeCompare(b.code)
+    );
+}
+
+function dwellAfterLink(pattern, journey, linkIndex) {
+  const link = pattern.links[linkIndex];
+  const currentOverride = journey.overrides.get(link.id);
+  const toWait =
+    currentOverride?.toWait !== null &&
+    currentOverride?.toWait !== undefined
+      ? currentOverride.toWait
+      : link.to.waitTime;
+
+  if (toWait) return toWait;
+
+  const nextLink = pattern.links[linkIndex + 1];
+  if (!nextLink) return 0;
+
+  const nextOverride = journey.overrides.get(nextLink.id);
+  const fromWait =
+    nextOverride?.fromWait !== null &&
+    nextOverride?.fromWait !== undefined
+      ? nextOverride.fromWait
+      : nextLink.from.waitTime;
+
+  return fromWait || 0;
+}
+
+function journeyTimes(pattern, journey) {
+  if (journey.departureSeconds === null) return [];
+
+  const times = [journey.departureSeconds];
+  let currentDeparture = journey.departureSeconds;
+
+  for (let index = 0; index < pattern.links.length; index++) {
+    const link = pattern.links[index];
+    const override = journey.overrides.get(link.id);
+    const runTime =
+      override?.runTime !== null && override?.runTime !== undefined
+        ? override.runTime
+        : link.runTime;
+
+    const arrival = currentDeparture + (runTime || 0);
+    const finalLink = index === pattern.links.length - 1;
+    const dwell = finalLink ? 0 : dwellAfterLink(pattern, journey, index);
+    const displayedTime = arrival + dwell;
+
+    times.push(displayedTime);
+    currentDeparture = displayedTime;
+  }
+
+  return times;
+}
+
+function journeyCodeLegend(journeys) {
+  const entries = new Map();
+
+  for (const journey of journeys) {
+    for (const condition of journey.profile.organisationConditions) {
+      const key =
+        `org:${condition.code}:${condition.category}:` +
+        `${condition.operates ? "on" : "off"}`;
+
+      if (!entries.has(key)) {
+        const rangeText = condition.ranges.length
+          ? condition.ranges.map(formatDateRange).filter(Boolean).join("; ")
+          : "";
+
+        entries.set(key, {
+          code: condition.code,
+          text:
+            condition.label +
+            (rangeText
+              ? `. Calendar dates in TXC: ${rangeText}`
+              : "")
+        });
+      }
+    }
+
+    for (const note of journey.notes) {
+      if (!note.code && !note.text) continue;
+      const key = `note:${note.code}:${note.text}`;
+      if (!entries.has(key)) {
+        entries.set(key, {
+          code: note.code || "Note",
+          text: note.text || "No note text supplied"
+        });
+      }
+    }
+  }
+
+  return Array.from(entries.values());
+}
+
+function profileNotes(journeys) {
+  const notes = [];
+
+  for (const journey of journeys) {
+    for (const exception of journey.profile.exceptions) {
+      notes.push(
+        `${journey.departureTime || journey.code} — ${journey.profile.label}: ${exception}`
+      );
+    }
+  }
+
+  return Array.from(new Set(notes));
+}
+
+function renderSummary(service) {
+  const operator =
+    service.operator.shortName ||
+    service.operator.operatorCode ||
+    "Unknown operator";
+  const nationalOperatorCode =
+    service.operator.nationalCode || "Not stated";
+
+  const sourcePeriod = `${service.startDate || "Not stated"} → ${service.endDate || "Open"}`;
+  const selectedPeriod = selectedTimetablePeriod(service);
+  const timetablePeriod = selectedPeriod
+    ? `${selectedPeriod.start || "Not stated"} → ${selectedPeriod.end || "Open"}`
+    : sourcePeriod;
+  const periodCount = service.timetablePeriods.length;
+  const selectedJourneyCount = journeysForPeriod(service).length;
+
+  const periodDoesNotOverlap = Boolean(
+    selectedPeriod && service.startDate && selectedPeriod.end &&
+    selectedPeriod.end < service.startDate ||
+    selectedPeriod && service.endDate && selectedPeriod.start &&
+    selectedPeriod.start > service.endDate
+  );
+  const calendarWarningHtml = periodDoesNotOverlap
+    ? `<div class="warnings"><strong>Date warning</strong><ul><li>` +
+      `The selected embedded timetable/version dates do not overlap the service operating period. ` +
+      `This can indicate an older timetable retained inside a merged WDMS file. The Date Tool changes ` +
+      `the service operating period; it does not rewrite school, holiday or journey calendars.</li></ul></div>`
+    : "";
+
+  const warningHtml = service.warnings.length
+    ? `
+      <div class="warnings">
+        <strong>Viewer warnings</strong>
+        <ul>
+          ${service.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join("")}
+        </ul>
+      </div>
+    `
+    : "";
+
+  els.serviceSummary.innerHTML = `
+    <div class="service-title">
+      <div>
+        <h2>Service ${escapeHtml(service.lineName)}</h2>
+        <div class="subtitle">
+          ${escapeHtml(service.description || "No description supplied")}
+        </div>
+      </div>
+      <span class="badge ${service.warnings.length ? "amber" : "green"}">
+        ${service.warnings.length ? `${service.warnings.length} warning(s)` : "Parsed successfully"}
+      </span>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Operator</div>
+        <div class="summary-value">${escapeHtml(operator)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">NOC code</div>
+        <div class="summary-value">${escapeHtml(nationalOperatorCode)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Service code</div>
+        <div class="summary-value">${escapeHtml(service.code || "Not stated")}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Selected embedded timetable/version dates</div>
+        <div class="summary-value">${escapeHtml(timetablePeriod)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Service operating period</div>
+        <div class="summary-value">${escapeHtml(sourcePeriod)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Source file</div>
+        <div class="summary-value">${escapeHtml(service.filename)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Journey patterns</div>
+        <div class="summary-value">${service.patterns.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Vehicle journeys</div>
+        <div class="summary-value">${selectedJourneyCount} selected / ${service.journeys.length} total</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Timetable date ranges</div>
+        <div class="summary-value">${periodCount}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Direction</div>
+        <div class="summary-value">${escapeHtml(service.direction || "Not stated")}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">TXC version</div>
+        <div class="summary-value">Read from source XML</div>
+      </div>
+    </div>
+    ${calendarWarningHtml}
+    ${warningHtml}
+  `;
+
+  els.serviceSummary.classList.remove("hidden");
+}
+
+function stopIsTimingPoint(stop) {
+  return ["PTP", "TIP"].includes(stop.timingStatus);
+}
+
+function renderPattern(pattern, patternIndex) {
+  const journeys = matchingJourneys(pattern);
+  if (!journeys.length) return "";
+
+  const stopMode = els.stopMode.value;
+  const visibleIndexes = pattern.stops
+    .map((stop, index) => ({ stop, index }))
+    .filter(item =>
+      stopMode === "all" ||
+      stopIsTimingPoint(item.stop) ||
+      item.index === 0 ||
+      item.index === pattern.stops.length - 1
+    );
+
+  const tripTimes = journeys.map(journey => ({
+    journey,
+    times: journeyTimes(pattern, journey)
+  }));
+
+  const headerCells = tripTimes.map(({ journey }) => {
+    const machineCode = journey.ticketMachineJourneyCode;
+    const machineCodeHtml = machineCode
+      ? `<div class="journey-code-value">${escapeHtml(machineCode)}</div>`
+      : `<div class="journey-code-value">${escapeHtml(
+          journey.departureTime.slice(0, 5)
+        )}</div>`;
+
+    const conditionBadges = journey.profile.organisationConditions.map(
+      condition => `
+        <span
+          class="journey-condition-badge ${escapeHtml(condition.badgeClass)}"
+          title="${escapeHtml(condition.label)}"
+        >${escapeHtml(condition.code)}</span>
+      `
+    );
+
+    const noteBadges = journey.notes
+      .filter(note => note.code)
+      .map(note => `
+        <span
+          class="journey-condition-badge note-code"
+          title="${escapeHtml(note.text || note.code)}"
+        >${escapeHtml(note.code)}</span>
+      `);
+
+    const badges = [...conditionBadges, ...noteBadges].join("");
+
+    const conditionLabel = journey.profile.organisationConditions
+      .map(condition =>
+        condition.operates ? "School days" : "Non-school days"
+      )
+      .join(" · ");
+
+    const titleParts = [
+      machineCode
+        ? `Ticket-machine journey code: ${machineCode}`
+        : "No ticket-machine journey code",
+      ...journey.profile.organisationConditions.map(
+        condition => `${condition.code}: ${condition.label}`
+      ),
+      ...journey.notes.map(
+        note => `${note.code || "Note"}: ${note.text || ""}`
+      ),
+      `Departure: ${journey.departureTime}`,
+      `TXC VehicleJourneyCode: ${journey.code}`
+    ];
+
+    return `
+      <th title="${escapeHtml(titleParts.join(" | "))}">
+        ${badges ? `<div class="journey-condition-row">${badges}</div>` : ""}
+        ${conditionLabel
+          ? `<div class="journey-condition-label" title="${escapeHtml(
+              journey.profile.organisationConditions
+                .map(condition => condition.label)
+                .join("; ")
+            )}">${escapeHtml(conditionLabel)}</div>`
+          : ""}
+        <div class="journey-code-label">
+          ${machineCode ? "Journey code" : "Departure"}
+        </div>
+        ${machineCodeHtml}
+        <div class="journey-head-days" title="${escapeHtml(
+          journey.profile.label
+        )}">${escapeHtml(journey.profile.label)}</div>
+      </th>
+    `;
+  }).join("");
+
+  const bodyRows = visibleIndexes.map(({ stop, index }) => {
+    const timeCells = tripTimes.map(({ times }) => `
+      <td>${times[index] === undefined ? "—" : formatClock(times[index])}</td>
+    `).join("");
+
+    const timing = stopIsTimingPoint(stop);
+    const timingChip = timing
+      ? `<span class="timing-chip" title="${escapeHtml(TIMING_LABELS[stop.timingStatus] || stop.timingStatus)}">${escapeHtml(stop.timingStatus)}</span>`
+      : "";
+
+    return `
+      <tr class="${timing ? "timing-point" : ""}">
+        <td class="stop-column">
+          <span class="stop-name">${escapeHtml(stop.name)}</span>${timingChip}
+          <span class="stop-code">${escapeHtml(stop.ref || "")}</span>
+        </td>
+        ${timeCells}
+      </tr>
+    `;
+  }).join("");
+
+  const notes = profileNotes(journeys);
+  const codeLegend = journeyCodeLegend(journeys);
+
+  const codeLegendHtml = codeLegend.length
+    ? `
+      <div class="exception-panel">
+        <strong>Journey and school-calendar code legend</strong>
+        <ul>
+          ${codeLegend.map(item =>
+            `<li><strong>${escapeHtml(item.code)}</strong> — ` +
+            `${escapeHtml(item.text)}</li>`
+          ).join("")}
+        </ul>
+      </div>
+    `
+    : "";
+
+  const notesHtml = notes.length
+    ? `
+      <div class="exception-panel">
+        <strong>Other operating exceptions shown in the TXC file</strong>
+        <ul>${notes.map(note => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
+      </div>
+    `
+    : "";
+
+  const first = pattern.stops[0]?.name || "Unknown start";
+  const last = pattern.stops[pattern.stops.length - 1]?.name || "Unknown end";
+
+  return `
+    <article class="pattern-card">
+      <div class="pattern-header">
+        <h3>${escapeHtml(pattern.id)}: ${escapeHtml(first)} → ${escapeHtml(last)}</h3>
+        <div class="pattern-meta">
+          ${escapeHtml(pattern.destinationDisplay || "No destination display")}
+          · ${escapeHtml(pattern.direction || "Direction not stated")}
+          · ${pattern.stops.length} stops
+          · ${journeys.length} journey column(s)
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="timetable">
+          <thead>
+            <tr>
+              <th class="stop-column">Stop</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
+      ${codeLegendHtml}
+      ${notesHtml}
+    </article>
+  `;
+}
+
+function mergeStopSequences(first, second) {
+  const rows = first.length + 1;
+  const cols = second.length + 1;
+  const dp = Array.from(
+    { length: rows },
+    () => new Uint16Array(cols)
+  );
+
+  for (let i = first.length; i >= 0; i--) {
+    for (let j = second.length; j >= 0; j--) {
+      if (i === first.length) {
+        dp[i][j] = second.length - j;
+      } else if (j === second.length) {
+        dp[i][j] = first.length - i;
+      } else if (first[i] === second[j]) {
+        dp[i][j] = 1 + dp[i + 1][j + 1];
+      } else {
+        dp[i][j] = 1 + Math.min(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+  }
+
+  const merged = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < first.length || j < second.length) {
+    if (i === first.length) {
+      merged.push(second[j++]);
+    } else if (j === second.length) {
+      merged.push(first[i++]);
+    } else if (first[i] === second[j]) {
+      merged.push(first[i]);
+      i++;
+      j++;
+    } else if (dp[i + 1][j] <= dp[i][j + 1]) {
+      merged.push(first[i++]);
+    } else {
+      merged.push(second[j++]);
+    }
+  }
+
+  return merged;
+}
+
+function alignStopsToMaster(masterRefs, patternStops) {
+  const positions = [];
+  let cursor = 0;
+
+  for (const stop of patternStops) {
+    while (
+      cursor < masterRefs.length &&
+      masterRefs[cursor] !== stop.ref
+    ) {
+      cursor++;
+    }
+
+    if (cursor >= masterRefs.length) {
+      throw new Error(
+        `Could not align stop ${stop.ref} in a combined timetable.`
+      );
+    }
+
+    positions.push(cursor);
+    cursor++;
+  }
+
+  return positions;
+}
+
+function timingStatusPriority(status) {
+  return status === "PTP" ? 3 : status === "TIP" ? 2 : 1;
+}
+
+function buildCombinedStopRows(patterns) {
+  if (!patterns.length) {
+    return {
+      masterRefs: [],
+      rows: [],
+      alignmentByPattern: new Map()
+    };
+  }
+
+  const sorted = [...patterns].sort(
+    (a, b) => b.stops.length - a.stops.length
+  );
+
+  let masterRefs = sorted[0].stops.map(stop => stop.ref);
+
+  for (const pattern of sorted.slice(1)) {
+    masterRefs = mergeStopSequences(
+      masterRefs,
+      pattern.stops.map(stop => stop.ref)
+    );
+  }
+
+  const rowContributions = masterRefs.map(() => []);
+  const alignmentByPattern = new Map();
+
+  for (const pattern of patterns) {
+    const positions = alignStopsToMaster(masterRefs, pattern.stops);
+    alignmentByPattern.set(pattern.id, positions);
+
+    pattern.stops.forEach((stop, index) => {
+      rowContributions[positions[index]].push(stop);
+    });
+  }
+
+  const rows = masterRefs.map((ref, index) => {
+    const contributions = rowContributions[index];
+    const best = [...contributions].sort(
+      (a, b) =>
+        timingStatusPriority(b.timingStatus) -
+        timingStatusPriority(a.timingStatus)
+    )[0] || {
+      ref,
+      name: ref || "Unknown stop",
+      timingStatus: "",
+      activity: ""
+    };
+
+    return {
+      ref,
+      name: best.name,
+      timingStatus: best.timingStatus,
+      activity: best.activity,
+      contributions
+    };
+  });
+
+  return {
+    masterRefs,
+    rows,
+    alignmentByPattern
+  };
+}
+
+function combinedJourneyTimes(
+  combined,
+  pattern,
+  journey
+) {
+  const output = Array(combined.rows.length).fill(null);
+  const times = journeyTimes(pattern, journey);
+  const positions = combined.alignmentByPattern.get(pattern.id) || [];
+
+  positions.forEach((masterPosition, index) => {
+    output[masterPosition] =
+      times[index] === undefined ? null : times[index];
+  });
+
+  return output;
+}
+
+function schoolDisplayBadge(condition) {
+  if (condition.category === "WorkingDays") {
+    return condition.operates ? "SD" : "SH";
+  }
+
+  if (condition.category === "Holidays") {
+    return condition.operates ? "SH" : "SD";
+  }
+
+  return condition.operates ? "SD" : "SH";
+}
+
+function daySpecificBadges(journey, selectedDayType) {
+  if (selectedDayType !== "weekday") return [];
+
+  const wholeWeekdayCodes = new Set([
+    "MondayToFriday",
+    "MondayToSaturday",
+    "MondayToSunday"
+  ]);
+
+  if (journey.profile.dayCodes.some(code =>
+    wholeWeekdayCodes.has(code)
+  )) {
+    return [];
+  }
+
+  const labels = {
+    Monday: "M",
+    Tuesday: "Tu",
+    Wednesday: "W",
+    Thursday: "Th",
+    Friday: "F"
+  };
+
+  return journey.profile.dayCodes
+    .filter(code => labels[code])
+    .map(code => ({
+      code: labels[code],
+      title: DAY_LABELS[code] || code,
+      className: "note-code"
+    }));
+}
+
+function journeyHeaderBadges(journey, selectedDayType) {
+  const badges = [];
+
+  for (const condition of journey.profile.organisationConditions) {
+    const displayCode = schoolDisplayBadge(condition);
+    badges.push({
+      code: displayCode,
+      title:
+        `${displayCode} — ${condition.label} ` +
+        `(TXC calendar ${condition.code})`,
+      className:
+        displayCode === "SD" ? "school-days" : "non-school-days"
+    });
+  }
+
+  if (selectedDayType === "bank-holiday") {
+    badges.push({
+      code: "BH",
+      title: "Bank Holiday journey",
+      className: "non-school-days"
+    });
+  }
+
+  badges.push(...daySpecificBadges(journey, selectedDayType));
+
+  for (const note of journey.notes) {
+    if (!note.code) continue;
+    badges.push({
+      code: note.code,
+      title: note.text || note.code,
+      className: "note-code"
+    });
+  }
+
+  return badges;
+}
+
+function schoolAndNoteLegend(journeys, selectedDayType) {
+  const entries = new Map();
+  const calendarRanges = new Map();
+
+  for (const journey of journeys) {
+    for (const condition of journey.profile.organisationConditions) {
+      const displayCode = schoolDisplayBadge(condition);
+      const key =
+        `${displayCode}:${condition.code}:` +
+        `${condition.category}:${condition.operates}`;
+
+      if (!entries.has(key)) {
+        entries.set(key, {
+          code: displayCode,
+          text:
+            `${displayCode === "SD" ? "School days" : "School holidays/non-school days"} — ` +
+            `${condition.label} (source TXC calendar ${condition.code})`
+        });
+      }
+
+      if (condition.ranges.length) {
+        calendarRanges.set(
+          `${condition.code}:${condition.organisationName}`,
+          condition
+        );
+      }
+    }
+
+    for (const note of journey.notes) {
+      if (!note.code && !note.text) continue;
+      const key = `note:${note.code}:${note.text}`;
+      if (!entries.has(key)) {
+        entries.set(key, {
+          code: note.code || "Note",
+          text: note.text || "No note text supplied"
+        });
+      }
+    }
+  }
+
+  if (selectedDayType === "bank-holiday") {
+    entries.set("BH", {
+      code: "BH",
+      text: "Bank Holiday journey"
+    });
+  }
+
+  return {
+    entries: Array.from(entries.values()),
+    calendarRanges: Array.from(calendarRanges.values())
+  };
+}
+
+function groupedOperatingExceptions(journeys) {
+  const grouped = new Map();
+
+  for (const journey of journeys) {
+    for (const exception of journey.profile.exceptions) {
+      const current = grouped.get(exception) || [];
+      current.push(
+        journey.ticketMachineJourneyCode ||
+        journey.departureTime.slice(0, 5)
+      );
+      grouped.set(exception, current);
+    }
+  }
+
+  return Array.from(grouped.entries()).map(([text, journeyCodes]) => ({
+    text,
+    journeyCodes: Array.from(new Set(journeyCodes))
+  }));
+}
+
+function dayTypeLabel(value) {
+  return SIMPLE_DAY_TYPES.find(item => item.key === value)?.label || value;
+}
+
+function combinedDestination(service, journeys) {
+  return mostCommonDestination(
+    service,
+    journeys,
+    els.patternSelect.value
+  );
+}
+
+function stopNameInPattern(pattern, stopRef) {
+  return (
+    pattern.stops.find(stop => stop.ref === stopRef)?.name ||
+    stopRef ||
+    "Unknown stop"
+  );
+}
+
+function journeyDynamicDestinationEvents(pattern, journey) {
+  const events = [];
+
+  for (let linkIndex = 0; linkIndex < pattern.links.length; linkIndex++) {
+    const link = pattern.links[linkIndex];
+    const override = journey.overrides.get(link.id);
+
+    const fromDisplay =
+      override?.fromDynamicDestinationDisplay !== null &&
+      override?.fromDynamicDestinationDisplay !== undefined
+        ? override.fromDynamicDestinationDisplay
+        : link.from.dynamicDestinationDisplay;
+
+    const toDisplay =
+      override?.toDynamicDestinationDisplay !== null &&
+      override?.toDynamicDestinationDisplay !== undefined
+        ? override.toDynamicDestinationDisplay
+        : link.to.dynamicDestinationDisplay;
+
+    if (fromDisplay) {
+      events.push({
+        timingLinkId: link.id,
+        endpoint: "from",
+        sequenceNumber: link.from.sequenceNumber,
+        stopRef: link.from.stopRef,
+        stopName: stopNameInPattern(pattern, link.from.stopRef),
+        display: fromDisplay,
+        linkIndex
+      });
+    }
+
+    if (toDisplay) {
+      events.push({
+        timingLinkId: link.id,
+        endpoint: "to",
+        sequenceNumber: link.to.sequenceNumber,
+        stopRef: link.to.stopRef,
+        stopName: stopNameInPattern(pattern, link.to.stopRef),
+        display: toDisplay,
+        linkIndex
+      });
+    }
+  }
+
+  const unique = [];
+  const seen = new Set();
+
+  for (const event of events) {
+    const key = [event.linkIndex, event.endpoint, event.stopRef, event.display]
+      .join("|");
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(event);
+  }
+
+  return unique.sort((a, b) =>
+    a.linkIndex - b.linkIndex ||
+    (a.endpoint === b.endpoint ? 0 : a.endpoint === "to" ? -1 : 1)
+  );
+}
+
+function journeyHeadsignRows(pattern, journey) {
+  const eventsByStopIndex = new Map();
+  let cursor = 0;
+
+  const addEvent = (stopIndex, display, endpoint, timingLinkId) => {
+    if (!display || stopIndex < 0) return;
+    const current = eventsByStopIndex.get(stopIndex) || [];
+    current.push({ display, endpoint, timingLinkId });
+    eventsByStopIndex.set(stopIndex, current);
+  };
+
+  for (let linkIndex = 0; linkIndex < pattern.links.length; linkIndex++) {
+    const link = pattern.links[linkIndex];
+    const override = journey.overrides.get(link.id);
+    const fromDisplay =
+      override?.fromDynamicDestinationDisplay !== null &&
+      override?.fromDynamicDestinationDisplay !== undefined
+        ? override.fromDynamicDestinationDisplay
+        : link.from.dynamicDestinationDisplay;
+    const toDisplay =
+      override?.toDynamicDestinationDisplay !== null &&
+      override?.toDynamicDestinationDisplay !== undefined
+        ? override.toDynamicDestinationDisplay
+        : link.to.dynamicDestinationDisplay;
+
+    let fromIndex = pattern.stops.findIndex(
+      (stop, index) => index >= cursor && stop.ref === link.from.stopRef
+    );
+    if (fromIndex < 0 && linkIndex === 0) fromIndex = 0;
+    addEvent(fromIndex, fromDisplay, "from", link.id);
+
+    let toIndex = pattern.stops.findIndex(
+      (stop, index) => index > fromIndex && stop.ref === link.to.stopRef
+    );
+    if (toIndex < 0) toIndex = Math.min(fromIndex + 1, pattern.stops.length - 1);
+    addEvent(toIndex, toDisplay, "to", link.id);
+    cursor = Math.max(0, toIndex);
+  }
+
+  let effective = pattern.destinationDisplay || "";
+
+  return pattern.stops.map((stop, index) => {
+    const changes = eventsByStopIndex.get(index) || [];
+    const previousDisplay = effective;
+    let endpoint = "";
+
+    for (const change of changes) {
+      effective = change.display;
+      endpoint = change.endpoint;
+    }
+
+    const changed = changes.length > 0;
+    return {
+      ...stop,
+      stopIndex: index,
+      display: effective,
+      previousDisplay,
+      changed,
+      endpoint,
+      status: changed
+        ? endpoint === "to"
+          ? "Changes here on arrival"
+          : "Changes here for departure"
+        : index === 0
+          ? "Initial headsign"
+          : "Carried forward"
+    };
+  });
+}
+
+function dynamicDestinationGroups(service, journeys) {
+  const groups = new Map();
+
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    if (!pattern) continue;
+
+    const rows = journeyHeadsignRows(pattern, journey);
+    if (!rows.length || !rows.some(row => row.display)) continue;
+
+    const signature = pattern.id + "||" + rows.map(row =>
+      [row.stopIndex, row.ref, row.display, row.status].join("|")
+    ).join("||");
+
+    if (!groups.has(signature)) {
+      groups.set(signature, {
+        rows,
+        pattern,
+        journeys: [],
+        earliestDeparture:
+          journey.departureSeconds ?? Number.MAX_SAFE_INTEGER
+      });
+    }
+
+    const group = groups.get(signature);
+    group.journeys.push(journey);
+    group.earliestDeparture = Math.min(
+      group.earliestDeparture,
+      journey.departureSeconds ?? Number.MAX_SAFE_INTEGER
+    );
+  }
+
+  return Array.from(groups.values())
+    .map(group => ({
+      ...group,
+      journeys: [...group.journeys].sort((a, b) =>
+        (a.departureSeconds ?? Number.MAX_SAFE_INTEGER) -
+          (b.departureSeconds ?? Number.MAX_SAFE_INTEGER) ||
+        a.ticketMachineJourneyCode.localeCompare(
+          b.ticketMachineJourneyCode,
+          undefined,
+          { numeric: true }
+        )
+      )
+    }))
+    .sort((a, b) =>
+      a.pattern.id.localeCompare(
+        b.pattern.id,
+        undefined,
+        { numeric: true }
+      ) || a.earliestDeparture - b.earliestDeparture
+    );
+}
+
+function renderDynamicDestinationPanel(service, journeys) {
+  const groups = dynamicDestinationGroups(service, journeys);
+  if (!groups.length) return "";
+
+  const groupHtml = groups.map((group, groupIndex) => {
+    const journeyChips = group.journeys.map(journey => {
+      const code =
+        journey.ticketMachineJourneyCode ||
+        journey.departureTime.slice(0, 5) ||
+        journey.code;
+
+      return `
+        <span
+          class="dynamic-journey-chip"
+          title="${escapeHtml(
+            `Departure ${journey.departureTime}; ` +
+            `VehicleJourneyCode ${journey.code}`
+          )}"
+        >${escapeHtml(code)}</span>
+      `;
+    }).join("");
+
+    const rows = group.rows.map(row => `
+      <tr class="${row.changed ? "headsign-change-row" : ""}">
+        <td>
+          <span class="dynamic-stop-name">
+            ${escapeHtml(row.name)}
+          </span>
+          <span class="dynamic-stop-code">
+            Stop ${row.stopIndex + 1} · ${escapeHtml(row.ref)}
+          </span>
+        </td>
+        <td>
+          <span class="dynamic-display-value">
+            ${escapeHtml(row.display || "Not supplied")}
+          </span>
+        </td>
+        <td>
+          ${row.changed
+            ? `<span class="dynamic-display-change">${escapeHtml(row.status)}</span>`
+            : `<span class="dynamic-display-carried">${escapeHtml(row.status)}</span>`}
+        </td>
+      </tr>
+    `).join("");
+
+    const first = group.pattern.stops[0]?.name || "Unknown start";
+    const last = group.pattern.stops[group.pattern.stops.length - 1]?.name ||
+      "Unknown end";
+
+    return `
+      <details class="dynamic-destination-group">
+        <summary class="dynamic-destination-group-header">
+          <span class="dynamic-destination-group-title">
+            ${escapeHtml(group.pattern.id)}: ${escapeHtml(first)} →
+            ${escapeHtml(last)} — applies to ${group.journeys.length} journey(s)
+          </span>
+          <span class="dynamic-expand-hint" aria-hidden="true"></span>
+        </summary>
+        <div class="dynamic-destination-group-content">
+          <div class="dynamic-journey-chips">
+            ${journeyChips}
+          </div>
+
+          <table class="dynamic-destination-table">
+            <thead>
+              <tr>
+                <th>From this stop onward</th>
+                <th>Active headsign / destination display</th>
+                <th>How it applies</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </details>
+    `;
+  }).join("");
+
+  return `
+    <section class="dynamic-destination-panel">
+      <h4>Headsigns and dynamic destination displays</h4>
+      <p class="dynamic-destination-intro">
+        Every stop is shown in journey order. The journey pattern's initial
+        DestinationDisplay applies from the first stop; a DynamicDestinationDisplay
+        changes it at the marked stop and is then carried forward until the next change.
+      </p>
+      ${groupHtml}
+    </section>
+  `;
+}
+
+function renderDirectionDetails(service, patterns) {
+  const publishedOrigin = service.publishedOrigin || "Not supplied";
+  const publishedDestination = service.publishedDestination || "Not supplied";
+
+  const patternItems = patterns.map(pattern => {
+    const first = pattern.stops[0]?.name || "Unknown start";
+    const last = pattern.stops[pattern.stops.length - 1]?.name || "Unknown end";
+    const headsign = pattern.destinationDisplay || "Not supplied";
+    return `
+      <li>
+        <strong>${escapeHtml(pattern.id)}:</strong>
+        ${escapeHtml(first)} → ${escapeHtml(last)}
+        · initial headsign: <strong>${escapeHtml(headsign)}</strong>
+      </li>
+    `;
+  }).join("");
+
+  return `
+    <div class="direction-details">
+      <div>
+        <strong>Published service direction:</strong>
+        ${escapeHtml(publishedOrigin)} → ${escapeHtml(publishedDestination)}
+      </div>
+      <div><strong>Actual selected journey pattern(s):</strong></div>
+      <ul class="direction-pattern-list">${patternItems}</ul>
+    </div>
+  `;
+}
+
+function renderCombinedTimetable(service, journeys) {
+  const selectedDayType = els.profileSelect.value;
+  const direction = els.patternSelect.value;
+
+  const patternMap = new Map();
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    if (pattern) patternMap.set(pattern.id, pattern);
+  }
+
+  const patterns = Array.from(patternMap.values());
+  if (!patterns.length) {
+    return "";
+  }
+
+  const combined = buildCombinedStopRows(patterns);
+  const tripTimes = [...journeys]
+    .filter(journey => journey.departureSeconds !== null)
+    .sort((a, b) =>
+      a.departureSeconds - b.departureSeconds ||
+      a.ticketMachineJourneyCode.localeCompare(
+        b.ticketMachineJourneyCode,
+        undefined,
+        { numeric: true }
+      ) ||
+      a.code.localeCompare(b.code)
+    )
+    .map(journey => {
+      const pattern = journeyPatternFor(service, journey);
+      return {
+        journey,
+        pattern,
+        times: combinedJourneyTimes(combined, pattern, journey)
+      };
+    });
+
+  const visibleIndexes = combined.rows
+    .map((stop, index) => ({ stop, index }))
+    .filter(item =>
+      els.stopMode.value === "all" ||
+      stopIsTimingPoint(item.stop) ||
+      item.index === 0 ||
+      item.index === combined.rows.length - 1
+    );
+
+  const headerCells = tripTimes.map(({ journey, pattern }) => {
+    const badges = journeyHeaderBadges(
+      journey,
+      selectedDayType
+    );
+
+    const badgeHtml = badges.length
+      ? badges.map(badge => `
+          <span
+            class="journey-condition-badge ${escapeHtml(
+              badge.className
+            )}"
+            title="${escapeHtml(badge.title)}"
+          >${escapeHtml(badge.code)}</span>
+        `).join("")
+      : "&nbsp;";
+
+    const machineCode = journey.ticketMachineJourneyCode;
+    const titleParts = [
+      ...badges.map(badge => badge.title),
+      machineCode
+        ? `Ticket-machine journey code: ${machineCode}`
+        : "No ticket-machine journey code",
+      `Departure: ${journey.departureTime}`,
+      `Journey pattern: ${pattern.id}`,
+      `TXC VehicleJourneyCode: ${journey.code}`
+    ];
+
+    return `
+      <th title="${escapeHtml(titleParts.join(" | "))}">
+        <div class="journey-condition-row">${badgeHtml}</div>
+        <div class="journey-code-label">
+          ${machineCode ? "Journey code" : "Departure"}
+        </div>
+        ${
+          machineCode
+            ? `<div class="journey-code-value">${escapeHtml(
+                machineCode
+              )}</div>`
+            : `<div class="journey-code-value">${escapeHtml(
+                journey.departureTime.slice(0, 5)
+              )}</div>`
+        }
+      </th>
+    `;
+  }).join("");
+
+  const bodyRows = visibleIndexes.map(({ stop, index }) => {
+    const cells = tripTimes.map(({ times }) => `
+      <td>${
+        times[index] === null || times[index] === undefined
+          ? ""
+          : formatClock(times[index])
+      }</td>
+    `).join("");
+
+    const timing = stopIsTimingPoint(stop);
+    const timingChip = timing
+      ? `<span
+          class="timing-chip"
+          title="${escapeHtml(
+            TIMING_LABELS[stop.timingStatus] || stop.timingStatus
+          )}"
+        >${escapeHtml(stop.timingStatus)}</span>`
+      : "";
+
+    return `
+      <tr class="${timing ? "timing-point" : ""}">
+        <td class="stop-column">
+          <span class="stop-name">${escapeHtml(stop.name)}</span>
+          ${timingChip}
+          <span class="stop-code">${escapeHtml(stop.ref || "")}</span>
+        </td>
+        ${cells}
+      </tr>
+    `;
+  }).join("");
+
+  const legend = schoolAndNoteLegend(
+    journeys,
+    selectedDayType
+  );
+
+  const rangeDetails = legend.calendarRanges.length
+    ? `
+      <details>
+        <summary>View school-calendar date ranges from the TXC</summary>
+        <div class="calendar-ranges">
+          <ul>
+            ${legend.calendarRanges.map(condition => `
+              <li>
+                <strong>${escapeHtml(condition.code)}</strong>
+                — ${escapeHtml(condition.organisationName)}:
+                ${escapeHtml(
+                  condition.ranges
+                    .map(formatDateRange)
+                    .filter(Boolean)
+                    .join("; ")
+                )}
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      </details>
+    `
+    : "";
+
+  const legendHtml = legend.entries.length
+    ? `
+      <div class="exception-panel">
+        <strong>Journey code legend</strong>
+        <ul>
+          ${legend.entries.map(item => `
+            <li>
+              <strong>${escapeHtml(item.code)}</strong>
+              — ${escapeHtml(item.text)}
+            </li>
+          `).join("")}
+        </ul>
+        ${rangeDetails}
+      </div>
+    `
+    : "";
+
+  const dynamicDestinationHtml =
+    renderDynamicDestinationPanel(service, journeys);
+
+  const exceptions = groupedOperatingExceptions(journeys);
+  const exceptionHtml = exceptions.length
+    ? `
+      <div class="exception-panel">
+        <strong>Other operating exceptions shown in the TXC</strong>
+        <ul>
+          ${exceptions.map(item => `
+            <li>
+              ${escapeHtml(item.text)}
+              ${
+                item.journeyCodes.length < tripTimes.length
+                  ? ` — journeys ${escapeHtml(
+                      item.journeyCodes.join(", ")
+                    )}`
+                  : ""
+              }
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `
+    : "";
+
+  const directionText =
+    direction === "outbound"
+      ? "Outbound"
+      : direction === "inbound"
+        ? "Inbound"
+        : "Direction not stated";
+
+  return `
+    <article class="pattern-card">
+      <div class="pattern-header">
+        <h3>
+          ${escapeHtml(dayTypeLabel(selectedDayType))}
+          — ${escapeHtml(directionText)}
+        </h3>
+        <div class="pattern-meta">
+          ${combined.rows.length} combined stop row(s)
+          · ${tripTimes.length} journey column(s)
+          · ${patterns.length} stopping pattern(s) merged
+        </div>
+      </div>
+
+      ${renderDirectionDetails(service, patterns)}
+
+      <div class="table-wrap">
+        <table class="timetable">
+          <thead>
+            <tr>
+              <th class="stop-column">Stop</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
+
+      <div class="combined-view-note">
+        Different TXC journey patterns have been combined into this one
+        timetable. A blank cell means that the journey does not serve that stop.
+      </div>
+
+      ${dynamicDestinationHtml}
+      ${legendHtml}
+      ${exceptionHtml}
+    </article>
+  `;
+}
+
+function renderActiveService() {
+  const service = state.activeService;
+  if (!service) {
+    renderNoMatchingService();
+    return;
+  }
+
+  renderSummary(service);
+
+  const selectedDayType = els.profileSelect.value;
+  const selectedDirection = els.patternSelect.value;
+
+  const journeys = journeysForPeriod(service).filter(
+    journey =>
+      journey.profile.dayCategories.includes(selectedDayType) &&
+      journeyDirectionFor(service, journey) === selectedDirection
+  );
+
+  const rendered = renderCombinedTimetable(service, journeys);
+
+  if (!rendered) {
+    els.timetableArea.innerHTML = `
+      <div class="empty-state">
+        No vehicle journeys match the selected day type and direction.
+      </div>
+    `;
+  } else {
+    els.timetableArea.innerHTML = rendered;
+  }
+
+  els.status.textContent =
+    `Showing ${periodLabel(selectedTimetablePeriod(service), false)}, ` +
+    `${dayTypeLabel(selectedDayType)}, ` +
+    `${selectedDirection || "direction not stated"}: ` +
+    `${journeys.length} journey column(s) in one combined timetable.`;
+}
+
+
+function renderNoMatchingService() {
+  els.serviceSummary.classList.add("hidden");
+  els.timetableArea.innerHTML = `
+    <div class="empty-state">No services match the current search.</div>
+  `;
+  els.status.textContent = "No services match the current search.";
+}
+
+function plainClock(seconds) {
+  if (!Number.isFinite(seconds)) return "";
+
+  const day = Math.floor(seconds / 86400);
+  const withinDay = ((Math.round(seconds) % 86400) + 86400) % 86400;
+  const hours = Math.floor(withinDay / 3600);
+  const minutes = Math.floor((withinDay % 3600) / 60);
+  const base =
+    `${String(hours).padStart(2, "0")}:` +
+    `${String(minutes).padStart(2, "0")}`;
+
+  return day > 0 ? `${base}+${day}` : base;
+}
+
+function compactOperatingDays(profile) {
+  const codes = new Set(profile.dayCodes || []);
+  if (codes.has("MondayToSunday")) return "M-Su";
+  if (codes.has("MondayToSaturday")) return "M-Sa";
+  if (codes.has("MondayToFriday")) return "M-F";
+  if (codes.has("Weekend")) return "SaSu";
+
+  const hasAll = values => values.every(value => codes.has(value));
+  if (hasAll(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])) return "M-Su";
+  if (hasAll(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]) && !codes.has("Sunday")) return "M-Sa";
+  if (hasAll(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]) && !codes.has("Saturday") && !codes.has("Sunday")) return "M-F";
+
+  const exclusions = {
+    NotMonday: "Tu-Su", NotTuesday: "MW-Su", NotWednesday: "MTuTh-Su",
+    NotThursday: "M-WF-Su", NotFriday: "M-ThSaSu",
+    NotSaturday: "M-FSu", NotSunday: "M-Sa"
+  };
+  for (const [code, label] of Object.entries(exclusions)) {
+    if (codes.has(code)) return label;
+  }
+
+  const ordered = [
+    ["Monday", "M"], ["Tuesday", "Tu"], ["Wednesday", "W"],
+    ["Thursday", "Th"], ["Friday", "F"], ["Saturday", "Sa"],
+    ["Sunday", "Su"]
+  ];
+  const result = ordered.filter(([code]) => codes.has(code)).map(([, label]) => label).join("");
+  if (result) return result;
+  if (profile.schooldaysOnly) return "M-F";
+  if (profile.bankHolidayOnly) return "BH";
+  return "Not stated";
+}
+
+function compactTripType(profile, dayType) {
+  const types = new Set();
+  if (profile.schooldaysOnly) types.add("SD");
+  if (dayType === "bank-holiday" || profile.bankHolidayOnly) types.add("BH");
+
+  for (const condition of profile.organisationConditions || []) {
+    if (condition.category === "WorkingDays") {
+      types.add(condition.operates ? "SD" : "SH");
+    } else if (condition.category === "Holidays") {
+      types.add(condition.operates ? "SH" : "SD");
+    }
+  }
+  return Array.from(types).join("/");
+}
+
+function excelDirectionLabel(value) {
+  if (value === "outbound") return "Outbound";
+  if (value === "inbound") return "Inbound";
+  return "Direction not stated";
+}
+
+function actualDirectionLabel(patterns) {
+  const endpoints = [];
+  for (const pattern of patterns) {
+    const first = pattern.stops[0]?.name;
+    const last = pattern.stops[pattern.stops.length - 1]?.name;
+    if (first || last) endpoints.push(`${first || "Not stated"} → ${last || "Not stated"}`);
+  }
+  const unique = Array.from(new Set(endpoints));
+  return unique.length === 1 ? unique[0] : unique.join(" / ");
+}
+
+function timetableRowsForDirection(service, dayType, direction) {
+  const journeys = journeysForPeriod(service)
+    .filter(journey =>
+      journey.profile.dayCategories.includes(dayType) &&
+      journeyDirectionFor(service, journey) === direction &&
+      journey.departureSeconds !== null
+    )
+    .sort((a, b) => a.departureSeconds - b.departureSeconds);
+  if (!journeys.length) return [];
+
+  const patternMap = new Map();
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    if (pattern) patternMap.set(pattern.id, pattern);
+  }
+  const patterns = Array.from(patternMap.values());
+  const combined = buildCombinedStopRows(patterns);
+  const tripTimes = journeys.map(journey => {
+    const pattern = journeyPatternFor(service, journey);
+    return { journey, pattern, times: combinedJourneyTimes(combined, pattern, journey) };
+  });
+
+  const rows = [
+    { style: 2, values: [`${excelDirectionLabel(direction)} — ${actualDirectionLabel(patterns)}`] },
+    { style: 3, values: ["", "Journey code", ...tripTimes.map(({ journey }) =>
+      journey.ticketMachineJourneyCode || journey.departureTime.slice(0, 5))] },
+    { style: 4, values: ["", "Scheduled departure", ...tripTimes.map(({ journey }) =>
+      journey.departureTime.slice(0, 5))] },
+    { style: 4, values: ["", "Operating days", ...tripTimes.map(({ journey }) =>
+      compactOperatingDays(journey.profile))] },
+    { style: 4, values: ["", "Trip type", ...tripTimes.map(({ journey }) =>
+      compactTripType(journey.profile, dayType))] },
+    { style: 4, values: ["", "Journey pattern", ...tripTimes.map(({ pattern }) => pattern?.id || "")] },
+    { style: 3, values: ["Stop code", "Stop name", ...tripTimes.map(() => "Time")] }
+  ];
+
+  combined.rows.forEach((stop, index) => {
+    if (els.stopMode.value === "timing" && !stopIsTimingPoint(stop) &&
+        index !== 0 && index !== combined.rows.length - 1) return;
+    rows.push({
+      style: index % 2 ? 6 : 5,
+      values: [stop.ref, stop.name, ...tripTimes.map(({ times }) =>
+        times[index] === null || times[index] === undefined ? "" : plainClock(times[index]))]
+    });
+  });
+  rows.push({ style: 0, values: [] }, { style: 0, values: [] });
+  return rows;
+}
+
+function workbookSheets(service) {
+  const periodJourneys = journeysForPeriod(service);
+  return SIMPLE_DAY_TYPES
+    .filter(day => periodJourneys.some(journey => journey.profile.dayCategories.includes(day.key)))
+    .map(day => {
+      const directions = Array.from(new Set(periodJourneys
+        .filter(journey => journey.profile.dayCategories.includes(day.key))
+        .map(journey => journeyDirectionFor(service, journey))))
+        .sort((a, b) => ["outbound", "inbound", "unspecified"].indexOf(a) -
+                        ["outbound", "inbound", "unspecified"].indexOf(b));
+      const period = selectedTimetablePeriod(service);
+      const operator = service.operator.shortName || service.operator.operatorCode || "";
+      const rows = [
+        { style: 1, values: [`Service ${service.lineName} — ${day.label}`] },
+        { style: 4, values: ["Description", service.description] },
+        { style: 4, values: ["Operator", operator] },
+        { style: 4, values: ["NOC code", service.operator.nationalCode] },
+        { style: 4, values: ["Service code", service.code] },
+        { style: 4, values: ["Published direction", `${service.publishedOrigin || "Not stated"} → ${service.publishedDestination || "Not stated"}`] },
+        { style: 4, values: ["Timetable operating dates", `${period?.start || service.startDate || "Not stated"} → ${period?.end || service.endDate || "Open"}`] },
+        { style: 4, values: ["Day operation", day.label] },
+        { style: 4, values: ["Source file", service.filename] },
+        { style: 0, values: [] }
+      ];
+      for (const direction of directions) rows.push(...timetableRowsForDirection(service, day.key, direction));
+      return { name: day.label.replace("Monday to Friday", "Monday-Friday").slice(0, 31), rows };
+    });
+}
+
+function xmlText(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+function excelColumnName(index) {
+  let result = "";
+  for (let value = index + 1; value; value = Math.floor((value - 1) / 26)) {
+    result = String.fromCharCode(65 + ((value - 1) % 26)) + result;
+  }
+  return result;
+}
+
+function worksheetXml(rows) {
+  const rowXml = rows.map((row, rowIndex) => {
+    const cells = row.values.map((value, columnIndex) => {
+      const ref = `${excelColumnName(columnIndex)}${rowIndex + 1}`;
+      return `<c r="${ref}" s="${row.style || 0}" t="inlineStr"><is><t xml:space="preserve">${xmlText(value)}</t></is></c>`;
+    }).join("");
+    return `<row r="${rowIndex + 1}">${cells}</row>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>` +
+    `<sheetViews><sheetView workbookViewId="0"/></sheetViews>` +
+    `<cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="34" customWidth="1"/>` +
+    `<col min="3" max="500" width="13" customWidth="1"/></cols>` +
+    `<sheetData>${rowXml}</sheetData><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>` +
+    `</worksheet>`;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function littleEndian(value, length) {
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index++) bytes[index] = (value >>> (index * 8)) & 255;
+  return bytes;
+}
+
+function combineBytes(parts) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) { result.set(part, offset); offset += part.length; }
+  return result;
+}
+
+function makeZip(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = encoder.encode(file.name);
+    const data = typeof file.data === "string" ? encoder.encode(file.data) : file.data;
+    const checksum = crc32(data);
+    const local = combineBytes([
+      littleEndian(0x04034b50, 4), littleEndian(20, 2), littleEndian(0, 2),
+      littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2),
+      littleEndian(checksum, 4), littleEndian(data.length, 4), littleEndian(data.length, 4),
+      littleEndian(name.length, 2), littleEndian(0, 2), name, data
+    ]);
+    const central = combineBytes([
+      littleEndian(0x02014b50, 4), littleEndian(20, 2), littleEndian(20, 2),
+      littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 2),
+      littleEndian(checksum, 4), littleEndian(data.length, 4), littleEndian(data.length, 4),
+      littleEndian(name.length, 2), littleEndian(0, 2), littleEndian(0, 2),
+      littleEndian(0, 2), littleEndian(0, 2), littleEndian(0, 4), littleEndian(offset, 4), name
+    ]);
+    localParts.push(local); centralParts.push(central); offset += local.length;
+  }
+  const central = combineBytes(centralParts);
+  return combineBytes([...localParts, central,
+    littleEndian(0x06054b50, 4), littleEndian(0, 2), littleEndian(0, 2),
+    littleEndian(files.length, 2), littleEndian(files.length, 2),
+    littleEndian(central.length, 4), littleEndian(offset, 4), littleEndian(0, 2)]);
+}
+
+function buildWorkbook(service) {
+  const sheets = workbookSheets(service);
+  if (!sheets.length) throw new Error("No day operations are available for the selected timetable dates.");
+  const workbookSheetsXml = sheets.map((sheet, index) =>
+    `<sheet name="${xmlText(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("");
+  const relationships = sheets.map((sheet, index) =>
+    `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("");
+  const overrides = sheets.map((sheet, index) =>
+    `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("");
+  const files = [
+    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${overrides}</Types>` },
+    { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${workbookSheetsXml}</sheets></workbook>` },
+    { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+    { name: "xl/styles.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF087F6B"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B63A6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F5F7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFD7DEE3"/></left><right style="thin"><color rgb="FFD7DEE3"/></right><top style="thin"><color rgb="FFD7DEE3"/></top><bottom style="thin"><color rgb="FFD7DEE3"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/><xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` }
+  ];
+  sheets.forEach((sheet, index) => files.push({ name: `xl/worksheets/sheet${index + 1}.xml`, data: worksheetXml(sheet.rows) }));
+  return makeZip(files);
+}
+
+
+function safeFilenamePart(value) {
+  return String(value || "")
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/[. ]+$/g, "")
+    .slice(0, 120) || "timetable";
+}
+
+function exportExcel() {
+  try {
+    const service = state.activeService;
+    if (!service) throw new Error("No service is selected.");
+
+    const workbook = buildWorkbook(service);
+    const blob = new Blob([workbook], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+      `${safeFilenamePart(service.operator.operatorCode || service.operator.shortName)}_` +
+      `${safeFilenamePart(service.lineName)}_` +
+      `${safeFilenamePart(service.code)}_timetable.xlsx`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+    appendLog("Downloaded Excel timetable with one sheet per day operation.");
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function loadTimetables() {
+  try {
+    showMessage("");
+    els.loadButton.disabled = true;
+    els.status.textContent = "Reading TXC files…";
+    appendLog("Loading selected files.");
+
+    const documents = await collectInputDocuments();
+    const services = documents.flatMap(parseServicesFromDocument);
+
+    if (!services.length) {
+      throw new Error(
+        "The selected XML files contain no readable TransXChange Service records."
+      );
+    }
+
+    state.documents = documents;
+    state.services = sortServices(services);
+
+    els.viewerControls.classList.remove("hidden");
+    els.serviceSearch.value = "";
+    refreshServiceOptions();
+
+    const journeyCount = services.reduce(
+      (total, service) => total + service.journeys.length,
+      0
+    );
+
+    appendLog(
+      `Loaded ${documents.length} XML document(s), ` +
+      `${services.length} service version(s), ${journeyCount} vehicle journey record(s).`
+    );
+
+    showMessage(
+      `Loaded ${services.length} service version(s) from ` +
+      `${documents.length} XML document(s). Use the filters to choose the timetable view.`
+    );
+  } catch (error) {
+    const detail = error.message || String(error);
+    showMessage(detail, "error");
+    els.status.textContent = "The timetable files could not be loaded.";
+    appendLog(`LOAD ERROR: ${detail}`);
+  } finally {
+    els.loadButton.disabled = false;
+  }
+}
+
+function clearViewer() {
+  state.documents = [];
+  state.services = [];
+  state.filteredServices = [];
+  state.activeService = null;
+
+  els.fileInput.value = "";
+  els.folderInput.value = "";
+  els.serviceSearch.value = "";
+  els.serviceSelect.innerHTML = "";
+  els.periodSelect.innerHTML = "";
+  els.periodSelect.disabled = false;
+  els.profileSelect.innerHTML = "";
+  els.patternSelect.innerHTML = "";
+  els.stopMode.value = "all";
+  els.viewerControls.classList.add("hidden");
+  els.serviceSummary.classList.add("hidden");
+  els.timetableArea.innerHTML =
+    '<div class="empty-state">No timetable has been loaded.</div>';
+  els.status.textContent = "Select XML files, a ZIP, or a folder to begin.";
+  els.log.textContent = "Activity log will appear here.";
+  showMessage("");
+}
+
+els.loadButton.addEventListener("click", loadTimetables);
+els.clearButton.addEventListener("click", clearViewer);
+els.serviceSearch.addEventListener("input", () =>
+  refreshServiceOptions(state.activeService?.id || "")
+);
+els.serviceSelect.addEventListener("change", () =>
+  selectService(els.serviceSelect.value)
+);
+els.periodSelect.addEventListener("change", () => {
+  refreshProfileOptions();
+  refreshPatternOptions();
+  renderActiveService();
+});
+els.profileSelect.addEventListener("change", () => {
+  refreshPatternOptions();
+  renderActiveService();
+});
+els.patternSelect.addEventListener("change", renderActiveService);
+els.stopMode.addEventListener("change", renderActiveService);
+els.printButton.addEventListener("click", () => window.print());
+els.csvButton.addEventListener("click", exportExcel);
+</script>
+</body>
+</html>

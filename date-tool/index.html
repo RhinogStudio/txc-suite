@@ -1,0 +1,1587 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwYjYzYTYiLz4KICA8cmVjdCB4PSIxMiIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSIzNyIgcng9IjciIGZpbGw9IiNmZmZmZmYiLz4KICA8cGF0aCBkPSJNMTIgMjNoNDB2LTJhNiA2IDAgMCAwLTYtNkgxOGE2IDYgMCAwIDAtNiA2eiIgZmlsbD0iI2NmZThmNyIvPgogIDxwYXRoIGQ9Ik0yMiAxMXY5TTQyIDExdjkiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNMjEgMzJoMTltLTUtNSA1IDUtNSA1IiBmaWxsPSJub25lIiBzdHJva2U9IiMwYjYzYTYiCiAgICAgICAgc3Ryb2tlLXdpZHRoPSIzLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik00MyA0MkgyNG01IDUtNS01IDUtNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGI2M2E2IgogICAgICAgIHN0cm9rZS13aWR0aD0iMy4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>TXC Date Tool — Update TransXChange Dates Online</title>
+  <meta name="description" content="Review and batch-update dates in TransXChange XML files securely in your browser. Original TXC files are not overwritten or uploaded.">
+  <meta name="author" content="Rhinog Studio">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://rhinogstudio.github.io/txc-suite/date-tool/">
+  <style>
+    :root {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #18202a;
+      background: #f3f5f7;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; }
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #d8dee5;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    header {
+      padding: 22px 28px;
+      border-bottom: 1px solid #c9deec;
+      background: linear-gradient(135deg, #ffffff, #edf7fd);
+    }
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .brand-icon {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      filter: drop-shadow(0 4px 8px rgba(11, 99, 166, .18));
+    }
+    h1 { margin: 0 0 5px; font-size: 26px; }
+    header p { margin: 0; color: #526b7c; }
+    main { padding: 24px 28px 28px; }
+    fieldset {
+      border: 1px solid #d8dee5;
+      border-radius: 9px;
+      padding: 16px;
+      margin: 0 0 16px;
+    }
+    legend { padding: 0 8px; font-weight: 700; }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) minmax(230px, 1fr);
+      gap: 16px;
+    }
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 650;
+    }
+    .field small {
+      display: block;
+      margin-top: 6px;
+      color: #687785;
+    }
+    select, input[type="date"], input[type="file"] {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #aeb8c2;
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: white;
+      font: inherit;
+    }
+    .hidden { display: none !important; }
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 8px;
+    }
+    .check-row input {
+      margin-top: 3px;
+      transform: scale(1.15);
+    }
+    .check-row label {
+      margin: 0;
+      font-weight: 650;
+    }
+    .mode-card {
+      padding: 12px 14px;
+      border: 1px solid #d8dee5;
+      border-radius: 8px;
+      background: #f8fafb;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0;
+    }
+    button {
+      border: 1px solid #8b98a5;
+      background: white;
+      color: #18202a;
+      border-radius: 7px;
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #005a9c;
+      color: white;
+      border-color: #005a9c;
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .notice {
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 12px 0;
+      background: #eef5fb;
+      border: 1px solid #b9d5ec;
+    }
+    .notice.warning {
+      background: #fff6df;
+      border-color: #e8ca78;
+    }
+    .notice.error {
+      background: #fff0f0;
+      border-color: #e2a0a0;
+    }
+    .status {
+      min-height: 24px;
+      margin: 12px 0;
+      font-weight: 600;
+    }
+    .download-panel {
+      display: none;
+      margin: 14px 0;
+      padding: 16px;
+      border: 2px solid #176b35;
+      border-radius: 9px;
+      background: #eef9f1;
+    }
+    .download-panel.visible { display: block; }
+    .download-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 11px 17px;
+      border-radius: 7px;
+      background: #176b35;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .download-link:hover { background: #105a2b; }
+    .log {
+      margin: 12px 0;
+      padding: 10px 12px;
+      min-height: 44px;
+      max-height: 180px;
+      overflow: auto;
+      white-space: pre-wrap;
+      border: 1px solid #cbd3da;
+      border-radius: 7px;
+      background: #f7f9fa;
+      color: #34414d;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+    .table-wrap {
+      overflow: auto;
+      max-height: 430px;
+      border: 1px solid #d8dee5;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+      font-size: 13px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      text-align: left;
+      background: #edf1f4;
+      padding: 10px;
+      border-bottom: 1px solid #cfd6dd;
+    }
+    tbody td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e6eaee;
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    .ready { color: #176b35; font-weight: 700; }
+    .issue { color: #9a3f13; font-weight: 700; }
+    code { font-family: Consolas, monospace; }
+    footer {
+      border-top: 1px solid #e2e6ea;
+      padding: 14px 28px 18px;
+      color: #687785;
+      font-size: 12px;
+    }
+    @media (max-width: 760px) {
+      body { padding: 10px; }
+      main, header { padding-left: 16px; padding-right: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand-header">
+      <div class="brand-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b63a6"/>
+  <rect x="12" y="15" width="40" height="37" rx="7" fill="#ffffff"/>
+  <path d="M12 23h40v-2a6 6 0 0 0-6-6H18a6 6 0 0 0-6 6z" fill="#cfe8f7"/>
+  <path d="M22 11v9M42 11v9" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M21 32h19m-5-5 5 5-5 5" fill="none" stroke="#0b63a6"
+        stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43 42H24m5 5-5-5 5-5" fill="none" stroke="#0b63a6"
+        stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div>
+      <div>
+        <h1>TXC Date Tool</h1>
+        <p>Offline date processing, batch changes and output filename management.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      This page runs entirely inside your browser. It does not upload files, access the internet,
+      install software, or overwrite the XML files you select.
+    </div>
+
+    <fieldset>
+      <legend>1. Choose what you need to do</legend>
+      <div class="grid">
+        <div class="field">
+          <label for="mode">Processing mode</label>
+          <select id="mode">
+            <option value="sync">End old files and start new files</option>
+            <option value="end">End-date files only</option>
+            <option value="start">Start-date files only</option>
+          </select>
+        </div>
+        <div id="modeDescription" class="mode-card">
+          Match the same ServiceCode between an old folder and a new folder.
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend id="folderLegend">2. Select the two folders</legend>
+      <div class="grid">
+        <div class="field">
+          <label id="primaryFolderLabel" for="primaryFiles">Old/current XML folder</label>
+          <input id="primaryFiles" type="file" accept=".xml,text/xml,application/xml"
+                 multiple webkitdirectory directory>
+          <small id="primaryFolderHelp">Contains the timetable files that are currently active.</small>
+        </div>
+
+        <div id="secondaryFolderField" class="field">
+          <label for="secondaryFiles">New Remix XML folder</label>
+          <input id="secondaryFiles" type="file" accept=".xml,text/xml,application/xml"
+                 multiple webkitdirectory directory>
+          <small>Contains the newly exported replacement timetable files.</small>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>3. Enter the date</legend>
+      <div class="grid">
+        <div id="startDateField" class="field">
+          <label id="startDateLabel" for="startDate">First day of the new timetable</label>
+          <input id="startDate" type="date">
+          <small id="startDateHelp">The old timetable will end automatically on the previous day.</small>
+        </div>
+
+        <div id="endDateField" class="field">
+          <label id="endDateLabel" for="endDate">New timetable end date — optional</label>
+          <input id="endDate" type="date">
+          <small id="endDateHelp">Leave blank to keep the EndDate already present in the new XML.</small>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>4. Output filenames</legend>
+      <div class="check-row">
+        <input id="renameFiles" type="checkbox" checked>
+        <div>
+          <label for="renameFiles">Add the resulting StartDate and EndDate to each filename</label>
+          <small>
+            Example: <code>GCAO023_2026-06-18_to_2026-07-31.xml</code>.
+            Open-ended services use <code>OPEN</code>. Untick this to preserve the original filenames.
+          </small>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button id="scanButton" class="primary">1. Scan and preview</button>
+      <button id="processButton" class="primary" disabled>2. Prepare processed ZIP</button>
+      <button id="clearButton">Clear</button>
+    </div>
+
+    <div id="status" class="status">Choose a mode, folders and date, then scan.</div>
+    <div id="message"></div>
+
+    <div id="downloadPanel" class="download-panel">
+      <strong>Your processed ZIP is ready.</strong>
+      <div>The original XML files have not been changed.</div>
+      <a id="downloadLink" class="download-link" href="#" download>Download processed ZIP</a>
+    </div>
+
+    <div id="log" class="log">Activity log will appear here.</div>
+
+    <div class="table-wrap" aria-label="Service preview">
+      <table>
+        <thead id="previewHead"></thead>
+        <tbody id="previewBody">
+          <tr><td>No scan has been run.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    Offline browser tool. Validate processed output through the organisation’s normal
+    TransXChange/WebDMS checks before live use.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+const XML_PREFIX = String.raw`(?:[A-Za-z_][\w.\-]*:)?`;
+const SERVICE_BLOCK_RE = new RegExp(
+  `<${XML_PREFIX}Service\\b[^>]*>[\\s\\S]*?<\\/${XML_PREFIX}Service\\s*>`,
+  "gi"
+);
+const OPERATING_PERIOD_SOURCE =
+  `(?<open><(?<prefix>[A-Za-z_][\\w.\\-]*:)?OperatingPeriod\\b[^>]*>)` +
+  `(?<body>[\\s\\S]*?)` +
+  `(?<close><\\/${XML_PREFIX}OperatingPeriod\\s*>)`;
+
+const state = {
+  rows: [],
+  primaryDocuments: new Map(),
+  secondaryDocuments: new Map(),
+  scanSignature: ""
+};
+
+const els = {
+  mode: document.getElementById("mode"),
+  modeDescription: document.getElementById("modeDescription"),
+  folderLegend: document.getElementById("folderLegend"),
+  primaryFolderLabel: document.getElementById("primaryFolderLabel"),
+  primaryFolderHelp: document.getElementById("primaryFolderHelp"),
+  primaryFiles: document.getElementById("primaryFiles"),
+  secondaryFolderField: document.getElementById("secondaryFolderField"),
+  secondaryFiles: document.getElementById("secondaryFiles"),
+  startDateField: document.getElementById("startDateField"),
+  startDateLabel: document.getElementById("startDateLabel"),
+  startDateHelp: document.getElementById("startDateHelp"),
+  startDate: document.getElementById("startDate"),
+  endDateField: document.getElementById("endDateField"),
+  endDateLabel: document.getElementById("endDateLabel"),
+  endDateHelp: document.getElementById("endDateHelp"),
+  endDate: document.getElementById("endDate"),
+  renameFiles: document.getElementById("renameFiles"),
+  scanButton: document.getElementById("scanButton"),
+  processButton: document.getElementById("processButton"),
+  clearButton: document.getElementById("clearButton"),
+  status: document.getElementById("status"),
+  message: document.getElementById("message"),
+  previewHead: document.getElementById("previewHead"),
+  previewBody: document.getElementById("previewBody"),
+  downloadPanel: document.getElementById("downloadPanel"),
+  downloadLink: document.getElementById("downloadLink"),
+  log: document.getElementById("log")
+};
+
+let currentDownloadUrl = "";
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function localName(element) {
+  return element.localName || element.nodeName.split(":").pop();
+}
+
+function directChild(element, name) {
+  return Array.from(element.children || []).find(child => localName(child) === name) || null;
+}
+
+function firstDescendant(element, name) {
+  return Array.from(element.getElementsByTagName("*")).find(child => localName(child) === name) || null;
+}
+
+function elementText(element) {
+  return element ? (element.textContent || "").trim() : "";
+}
+
+function newlineOf(text) {
+  if (text.includes("\r\n")) return "\r\n";
+  if (text.includes("\r")) return "\r";
+  return "\n";
+}
+
+function relativeInsideSelectedFolder(file) {
+  const raw = file.webkitRelativePath || file.name;
+  const normal = raw.replaceAll("\\", "/");
+  const parts = normal.split("/").filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join("/") : file.name;
+}
+
+function isXmlFile(file) {
+  return file.name.toLowerCase().endsWith(".xml");
+}
+
+async function readUtf8Xml(file, side, index) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let offset = 0;
+  let hadBom = false;
+
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    offset = 3;
+    hadBom = true;
+  }
+
+  const headerSample = new TextDecoder("ascii").decode(
+    bytes.slice(offset, Math.min(bytes.length, offset + 512))
+  );
+  const encodingMatch = headerSample.match(/<\?xml[^>]*encoding=["']\s*([^"']+?)\s*["']/i);
+  if (encodingMatch) {
+    const declared = encodingMatch[1].toLowerCase().replaceAll("_", "-");
+    if (!["utf-8", "utf8"].includes(declared)) {
+      throw new Error(
+        `${file.name} declares ${encodingMatch[1]} encoding. ` +
+        `This safety-first browser version only processes UTF-8 XML.`
+      );
+    }
+  }
+
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.slice(offset));
+  } catch {
+    throw new Error(`${file.name} is not valid UTF-8 XML.`);
+  }
+
+  assertWellFormed(text, file.name);
+
+  return {
+    id: `${side}:${index}`,
+    side,
+    file,
+    displayPath: relativeInsideSelectedFolder(file),
+    text,
+    newline: newlineOf(text),
+    hadBom
+  };
+}
+
+function parseXml(text, filename) {
+  const xml = new DOMParser().parseFromString(text, "application/xml");
+  const parserError = Array.from(xml.getElementsByTagName("*"))
+    .find(element => localName(element).toLowerCase() === "parsererror");
+
+  if (parserError) {
+    const detail = elementText(parserError).replace(/\s+/g, " ").slice(0, 240);
+    throw new Error(`${filename} is not well-formed XML. ${detail}`);
+  }
+  return xml;
+}
+
+function assertWellFormed(text, filename) {
+  parseXml(text, filename);
+}
+
+function parseServices(documentRecord) {
+  const xml = parseXml(documentRecord.text, documentRecord.file.name);
+  const services = Array.from(xml.getElementsByTagName("*"))
+    .filter(element => localName(element) === "Service");
+
+  const records = [];
+
+  for (const service of services) {
+    const codeElement =
+      directChild(service, "ServiceCode") || firstDescendant(service, "ServiceCode");
+    const code = elementText(codeElement);
+    if (!code) continue;
+
+    const operatingPeriod =
+      directChild(service, "OperatingPeriod") || firstDescendant(service, "OperatingPeriod");
+
+    let startDate = "";
+    let endDate = "";
+    if (operatingPeriod) {
+      startDate = elementText(directChild(operatingPeriod, "StartDate"));
+      endDate = elementText(directChild(operatingPeriod, "EndDate"));
+    }
+
+    records.push({
+      code,
+      normalizedCode: code.toLocaleLowerCase(),
+      documentId: documentRecord.id,
+      displayPath: documentRecord.displayPath,
+      startDate,
+      endDate,
+      hasOperatingPeriod: Boolean(operatingPeriod)
+    });
+  }
+
+  return records;
+}
+
+function mapRecordsByCode(documents) {
+  const result = new Map();
+
+  for (const documentRecord of documents.values()) {
+    const records = parseServices(documentRecord);
+    for (const record of records) {
+      const current = result.get(record.normalizedCode) || [];
+      current.push(record);
+      result.set(record.normalizedCode, current);
+    }
+  }
+
+  if (result.size === 0) {
+    throw new Error("No <ServiceCode> values were found in one of the selected folders.");
+  }
+  return result;
+}
+
+function buildSyncRows(primaryByCode, secondaryByCode) {
+  const codes = Array.from(
+    new Set([...primaryByCode.keys(), ...secondaryByCode.keys()])
+  ).sort();
+
+  return codes.map(normalizedCode => {
+    const oldRecords = primaryByCode.get(normalizedCode) || [];
+    const newRecords = secondaryByCode.get(normalizedCode) || [];
+    const code = oldRecords[0]?.code || newRecords[0]?.code || normalizedCode;
+
+    let status = "Ready";
+    if (oldRecords.length === 0) status = "Missing old";
+    else if (newRecords.length === 0) status = "Missing new";
+    else if (oldRecords.length > 1) status = "Duplicate old";
+    else if (newRecords.length > 1) status = "Duplicate new";
+    else if (!oldRecords[0].hasOperatingPeriod) status = "Old has no OperatingPeriod";
+    else if (!newRecords[0].hasOperatingPeriod) status = "New has no OperatingPeriod";
+
+    return {
+      kind: "sync",
+      code,
+      oldRecords,
+      newRecords,
+      status,
+      processable: status === "Ready"
+    };
+  });
+}
+
+function buildSingleRows(documents) {
+  const rows = [];
+
+  for (const documentRecord of documents.values()) {
+    const records = parseServices(documentRecord);
+
+    if (records.length === 0) {
+      rows.push({
+        kind: "single",
+        code: "",
+        record: {
+          documentId: documentRecord.id,
+          displayPath: documentRecord.displayPath,
+          startDate: "",
+          endDate: ""
+        },
+        status: "No ServiceCode",
+        processable: false
+      });
+      continue;
+    }
+
+    const counts = new Map();
+    for (const record of records) {
+      const key = record.normalizedCode;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+
+    for (const record of records) {
+      let status = "Ready";
+      if ((counts.get(record.normalizedCode) || 0) > 1) {
+        status = "Duplicate ServiceCode in file";
+      } else if (!record.hasOperatingPeriod) {
+        status = "No OperatingPeriod";
+      }
+
+      rows.push({
+        kind: "single",
+        code: record.code,
+        record,
+        status,
+        processable: status === "Ready"
+      });
+    }
+  }
+
+  return rows.sort((a, b) =>
+    a.record.displayPath.localeCompare(b.record.displayPath) ||
+    a.code.localeCompare(b.code)
+  );
+}
+
+function isoDateOrThrow(value, label) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${label} is required and must use YYYY-MM-DD.`);
+  }
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`${label} is not a valid calendar date.`);
+  }
+  return parsed;
+}
+
+function previousIsoDay(value) {
+  const parsed = isoDateOrThrow(value, "New timetable start date");
+  parsed.setUTCDate(parsed.getUTCDate() - 1);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function validateDateInputs() {
+  const mode = els.mode.value;
+  const startValue = els.startDate.value;
+  const endValue = els.endDate.value;
+
+  if (mode === "end") {
+    const end = isoDateOrThrow(endValue, "EndDate");
+    return { mode, start: "", end: end.toISOString().slice(0, 10), oldEnd: "" };
+  }
+
+  const start = isoDateOrThrow(
+    startValue,
+    mode === "sync" ? "New timetable StartDate" : "StartDate"
+  );
+  const startIso = start.toISOString().slice(0, 10);
+
+  let endIso = "";
+  if (endValue) {
+    const end = isoDateOrThrow(
+      endValue,
+      mode === "sync" ? "Optional new timetable EndDate" : "Optional EndDate"
+    );
+    endIso = end.toISOString().slice(0, 10);
+    if (endIso < startIso) {
+      throw new Error("The EndDate cannot be before the StartDate.");
+    }
+  }
+
+  return {
+    mode,
+    start: startIso,
+    end: endIso,
+    oldEnd: mode === "sync" ? previousIsoDay(startIso) : ""
+  };
+}
+
+function currentSignature() {
+  const primary = Array.from(els.primaryFiles.files || [])
+    .map(file => `${file.name}:${file.size}:${file.lastModified}`)
+    .join("|");
+  const secondary = Array.from(els.secondaryFiles.files || [])
+    .map(file => `${file.name}:${file.size}:${file.lastModified}`)
+    .join("|");
+
+  return [
+    els.mode.value,
+    primary,
+    secondary,
+    els.startDate.value,
+    els.endDate.value,
+    els.renameFiles.checked ? "rename" : "keep"
+  ].join("|||");
+}
+
+function appendLog(message) {
+  const timestamp = new Date().toLocaleTimeString();
+  const existing = els.log.textContent === "Activity log will appear here."
+    ? ""
+    : els.log.textContent + "\n";
+  els.log.textContent = `${existing}[${timestamp}] ${message}`;
+  els.log.scrollTop = els.log.scrollHeight;
+}
+
+function clearDownload() {
+  if (currentDownloadUrl) {
+    URL.revokeObjectURL(currentDownloadUrl);
+    currentDownloadUrl = "";
+  }
+  els.downloadLink.removeAttribute("href");
+  els.downloadLink.removeAttribute("download");
+  els.downloadPanel.classList.remove("visible");
+}
+
+function showMessage(text, type = "") {
+  els.message.innerHTML = "";
+  if (!text) return;
+  const box = document.createElement("div");
+  box.className = `notice ${type}`.trim();
+  box.textContent = text;
+  els.message.appendChild(box);
+}
+
+function resetScanState(message = "Inputs changed. Run Scan and preview again.") {
+  clearDownload();
+  state.rows = [];
+  state.primaryDocuments = new Map();
+  state.secondaryDocuments = new Map();
+  state.scanSignature = "";
+  els.processButton.disabled = true;
+  els.status.textContent = message;
+  renderPreview([]);
+}
+
+function fileDescription(records) {
+  if (records.length === 0) return "";
+  if (records.length === 1) return records[0].displayPath;
+  const paths = [...new Set(records.map(record => record.displayPath))];
+  return `${records.length} matches: ${paths.join(", ")}`;
+}
+
+function periodDescription(recordOrRecords) {
+  if (Array.isArray(recordOrRecords)) {
+    if (recordOrRecords.length !== 1) return "";
+    recordOrRecords = recordOrRecords[0];
+  }
+  if (!recordOrRecords) return "";
+  return `${recordOrRecords.startDate || "missing"} → ${recordOrRecords.endDate || "open/no EndDate"}`;
+}
+
+function plannedDescription(row, dates) {
+  if (dates.mode === "end") {
+    return `EndDate → ${dates.end}`;
+  }
+  if (dates.mode === "start") {
+    return dates.end
+      ? `StartDate → ${dates.start}; EndDate → ${dates.end}`
+      : `StartDate → ${dates.start}; EndDate unchanged`;
+  }
+  return "";
+}
+
+function renderPreview(rows) {
+  const mode = els.mode.value;
+  els.previewHead.innerHTML = "";
+  els.previewBody.innerHTML = "";
+
+  const headerRow = els.previewHead.insertRow();
+  const headers = mode === "sync"
+    ? ["Status", "ServiceCode", "Old file", "Old current period", "New file", "New current period"]
+    : ["Status", "ServiceCode", "File", "Current period", "Planned change"];
+
+  for (const heading of headers) {
+    const th = document.createElement("th");
+    th.textContent = heading;
+    headerRow.appendChild(th);
+  }
+
+  if (rows.length === 0) {
+    const row = els.previewBody.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = headers.length;
+    cell.textContent = "No scan has been run.";
+    return;
+  }
+
+  let dates = null;
+  try {
+    dates = validateDateInputs();
+  } catch {
+    dates = { mode };
+  }
+
+  for (const item of rows) {
+    const row = els.previewBody.insertRow();
+    const values = mode === "sync"
+      ? [
+          item.status,
+          item.code,
+          fileDescription(item.oldRecords),
+          periodDescription(item.oldRecords),
+          fileDescription(item.newRecords),
+          periodDescription(item.newRecords)
+        ]
+      : [
+          item.status,
+          item.code,
+          item.record.displayPath,
+          periodDescription(item.record),
+          plannedDescription(item, dates)
+        ];
+
+    values.forEach((value, index) => {
+      const cell = row.insertCell();
+      cell.textContent = value;
+      if (index === 0) {
+        cell.className = item.processable ? "ready" : "issue";
+      }
+    });
+  }
+}
+
+async function loadDocuments(fileList, side) {
+  const files = Array.from(fileList || []).filter(isXmlFile);
+  if (files.length === 0) {
+    throw new Error("No XML files were selected in the required folder.");
+  }
+
+  const records = await Promise.all(
+    files.map((file, index) => readUtf8Xml(file, side, index))
+  );
+  return new Map(records.map(record => [record.id, record]));
+}
+
+function updateModeUi() {
+  const mode = els.mode.value;
+  clearDownload();
+
+  if (mode === "sync") {
+    els.modeDescription.textContent =
+      "Match the same ServiceCode between an old folder and a new folder.";
+    els.folderLegend.textContent = "2. Select the two folders";
+    els.primaryFolderLabel.textContent = "Old/current XML folder";
+    els.primaryFolderHelp.textContent =
+      "Contains the timetable files that are currently active.";
+    els.secondaryFolderField.classList.remove("hidden");
+
+    els.startDateField.classList.remove("hidden");
+    els.startDateLabel.textContent = "First day of the new timetable";
+    els.startDateHelp.textContent =
+      "The old timetable will end automatically on the previous day.";
+
+    els.endDateField.classList.remove("hidden");
+    els.endDateLabel.textContent = "New timetable end date — optional";
+    els.endDateHelp.textContent =
+      "Leave blank to keep the EndDate already present in the new XML.";
+  } else if (mode === "end") {
+    els.modeDescription.textContent =
+      "Apply one EndDate to every safe Service record in a single folder.";
+    els.folderLegend.textContent = "2. Select the folder";
+    els.primaryFolderLabel.textContent = "XML files to end-date";
+    els.primaryFolderHelp.textContent =
+      "Every safe Service record in this folder will receive the chosen EndDate.";
+    els.secondaryFolderField.classList.add("hidden");
+
+    els.startDateField.classList.add("hidden");
+    els.endDateField.classList.remove("hidden");
+    els.endDateLabel.textContent = "EndDate to apply";
+    els.endDateHelp.textContent =
+      "Existing StartDate values and all other XML content remain unchanged.";
+  } else {
+    els.modeDescription.textContent =
+      "Apply one StartDate to every safe Service record in a single folder.";
+    els.folderLegend.textContent = "2. Select the folder";
+    els.primaryFolderLabel.textContent = "XML files to start-date";
+    els.primaryFolderHelp.textContent =
+      "Every safe Service record in this folder will receive the chosen StartDate.";
+    els.secondaryFolderField.classList.add("hidden");
+
+    els.startDateField.classList.remove("hidden");
+    els.startDateLabel.textContent = "StartDate to apply";
+    els.startDateHelp.textContent =
+      "Existing EndDate values remain unchanged unless an optional EndDate is entered.";
+
+    els.endDateField.classList.remove("hidden");
+    els.endDateLabel.textContent = "EndDate — optional";
+    els.endDateHelp.textContent =
+      "Leave blank to preserve the EndDate already present in each XML file.";
+  }
+
+  resetScanState("Mode changed. Select the required folder(s), enter the date, then scan.");
+}
+
+async function scan() {
+  try {
+    showMessage("");
+    clearDownload();
+    appendLog(`Starting ${els.mode.value} scan.`);
+    els.processButton.disabled = true;
+    els.scanButton.disabled = true;
+    els.status.textContent = "Scanning XML files…";
+
+    validateDateInputs();
+
+    const primaryDocuments = await loadDocuments(els.primaryFiles.files, "primary");
+    let secondaryDocuments = new Map();
+    let rows;
+
+    if (els.mode.value === "sync") {
+      secondaryDocuments = await loadDocuments(els.secondaryFiles.files, "secondary");
+      rows = buildSyncRows(
+        mapRecordsByCode(primaryDocuments),
+        mapRecordsByCode(secondaryDocuments)
+      );
+    } else {
+      rows = buildSingleRows(primaryDocuments);
+    }
+
+    state.primaryDocuments = primaryDocuments;
+    state.secondaryDocuments = secondaryDocuments;
+    state.rows = rows;
+    state.scanSignature = currentSignature();
+
+    renderPreview(rows);
+
+    const ready = rows.filter(row => row.processable).length;
+    const issues = rows.length - ready;
+    const unit = els.mode.value === "sync" ? "pair" : "service";
+    els.status.textContent =
+      `Scan complete: ${ready} ready ${unit}(s), ${issues} issue(s). Only Ready rows will process.`;
+    appendLog(`Scan complete: ${ready} ready ${unit}(s), ${issues} issue(s).`);
+    els.processButton.disabled = ready === 0;
+  } catch (error) {
+    state.rows = [];
+    state.primaryDocuments = new Map();
+    state.secondaryDocuments = new Map();
+    state.scanSignature = "";
+    renderPreview([]);
+    const detail = error.message || String(error);
+    showMessage(detail, "error");
+    appendLog(`SCAN ERROR: ${detail}`);
+    els.status.textContent = "Scan failed. No files were changed.";
+  } finally {
+    els.scanButton.disabled = false;
+  }
+}
+
+function serviceCodePattern(serviceCode) {
+  return new RegExp(
+    `<${XML_PREFIX}ServiceCode\\b[^>]*>\\s*${escapeRegExp(serviceCode.trim())}\\s*` +
+    `<\\/${XML_PREFIX}ServiceCode\\s*>`,
+    "i"
+  );
+}
+
+function findServiceBlock(text, serviceCode) {
+  const blocks = [...text.matchAll(new RegExp(SERVICE_BLOCK_RE.source, "gi"))]
+    .filter(match => serviceCodePattern(serviceCode).test(match[0]));
+
+  if (blocks.length === 0) {
+    throw new Error(`ServiceCode '${serviceCode}' was not found in the XML text.`);
+  }
+  if (blocks.length > 1) {
+    throw new Error(
+      `ServiceCode '${serviceCode}' appears more than once in the same XML file.`
+    );
+  }
+
+  return {
+    start: blocks[0].index,
+    end: blocks[0].index + blocks[0][0].length,
+    text: blocks[0][0]
+  };
+}
+
+function inferChildIndent(body, newline) {
+  const match = body.match(new RegExp(`${escapeRegExp(newline)}([ \\t]+)<`));
+  return match ? match[1] : "  ";
+}
+
+function replaceDateElement(operatingText, localTag, value, namespacePrefix, newline) {
+  const datePattern = new RegExp(
+    `(?<open><${XML_PREFIX}${escapeRegExp(localTag)}\\b[^>]*>)[\\s\\S]*?` +
+    `(?<close><\\/${XML_PREFIX}${escapeRegExp(localTag)}\\s*>)`,
+    "i"
+  );
+
+  const existing = operatingText.match(datePattern);
+  if (existing) {
+    const start = existing.index;
+    const end = start + existing[0].length;
+    return operatingText.slice(0, start) +
+      existing.groups.open + value + existing.groups.close +
+      operatingText.slice(end);
+  }
+
+  const opPattern = new RegExp(`^${OPERATING_PERIOD_SOURCE}$`, "i");
+  const opMatch = operatingText.match(opPattern);
+  if (!opMatch) {
+    throw new Error("Could not safely read the service OperatingPeriod.");
+  }
+
+  let body = opMatch.groups.body;
+  const childIndent = inferChildIndent(body, newline);
+  const newElement =
+    `<${namespacePrefix}${localTag}>${value}</${namespacePrefix}${localTag}>`;
+
+  if (localTag === "EndDate") {
+    const startPattern = new RegExp(
+      `<${XML_PREFIX}StartDate\\b[^>]*>[\\s\\S]*?<\\/${XML_PREFIX}StartDate\\s*>`,
+      "i"
+    );
+    const startMatch = body.match(startPattern);
+    if (startMatch) {
+      const insertionPoint = startMatch.index + startMatch[0].length;
+      body = body.slice(0, insertionPoint) +
+        newline + childIndent + newElement +
+        body.slice(insertionPoint);
+    } else {
+      body = newline + childIndent + newElement + body;
+    }
+  } else {
+    body = newline + childIndent + newElement + body;
+  }
+
+  return opMatch.groups.open + body + opMatch.groups.close;
+}
+
+function updateServiceDate(text, serviceCode, dateTag, value, newline) {
+  const service = findServiceBlock(text, serviceCode);
+  const opMatches = [
+    ...service.text.matchAll(new RegExp(OPERATING_PERIOD_SOURCE, "gi"))
+  ];
+
+  if (opMatches.length === 0) {
+    throw new Error(`ServiceCode '${serviceCode}' has no OperatingPeriod.`);
+  }
+  if (opMatches.length > 1) {
+    throw new Error(
+      `ServiceCode '${serviceCode}' has more than one OperatingPeriod. ` +
+      `No output was created because the target is ambiguous.`
+    );
+  }
+
+  const op = opMatches[0];
+  const prefix = op.groups.prefix || "";
+  const updatedOperating = replaceDateElement(
+    op[0], dateTag, value, prefix, newline
+  );
+  const updatedService =
+    service.text.slice(0, op.index) +
+    updatedOperating +
+    service.text.slice(op.index + op[0].length);
+
+  return text.slice(0, service.start) + updatedService + text.slice(service.end);
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function makeReport(rows) {
+  const headers = [
+    "mode",
+    "service_code",
+    "source_role",
+    "file",
+    "original_start",
+    "original_end",
+    "result_start",
+    "result_end",
+    "status"
+  ];
+  const lines = [headers.map(csvCell).join(",")];
+  for (const row of rows) {
+    lines.push(headers.map(header => csvCell(row[header])).join(","));
+  }
+  return "\uFEFF" + lines.join("\r\n");
+}
+
+function encodeDocument(documentRecord, text) {
+  const bytes = new TextEncoder().encode(text);
+  if (!documentRecord.hadBom) return bytes;
+  const output = new Uint8Array(bytes.length + 3);
+  output.set([0xEF, 0xBB, 0xBF], 0);
+  output.set(bytes, 3);
+  return output;
+}
+
+function dosDateTime(inputDate = new Date()) {
+  const year = Math.max(1980, inputDate.getFullYear());
+  const dosTime =
+    (inputDate.getHours() << 11) |
+    (inputDate.getMinutes() << 5) |
+    Math.floor(inputDate.getSeconds() / 2);
+  const dosDate =
+    ((year - 1980) << 9) |
+    ((inputDate.getMonth() + 1) << 5) |
+    inputDate.getDate();
+  return { dosTime, dosDate };
+}
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (const byte of bytes) {
+    crc = CRC_TABLE[(crc ^ byte) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function u16(value) {
+  return new Uint8Array([value & 0xFF, (value >>> 8) & 0xFF]);
+}
+
+function u32(value) {
+  return new Uint8Array([
+    value & 0xFF,
+    (value >>> 8) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 24) & 0xFF
+  ]);
+}
+
+function concatBytes(parts) {
+  const length = parts.reduce((sum, part) => sum + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+function createStoredZip(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+  const now = dosDateTime();
+
+  for (const entry of entries) {
+    const nameBytes = new TextEncoder().encode(
+      entry.name.replaceAll("\\", "/")
+    );
+    const data =
+      entry.bytes instanceof Uint8Array
+        ? entry.bytes
+        : new Uint8Array(entry.bytes);
+    const crc = crc32(data);
+    const flags = 0x0800;
+
+    const localHeader = concatBytes([
+      u32(0x04034B50),
+      u16(20),
+      u16(flags),
+      u16(0),
+      u16(now.dosTime),
+      u16(now.dosDate),
+      u32(crc),
+      u32(data.length),
+      u32(data.length),
+      u16(nameBytes.length),
+      u16(0),
+      nameBytes
+    ]);
+
+    localParts.push(localHeader, data);
+
+    const centralHeader = concatBytes([
+      u32(0x02014B50),
+      u16(20),
+      u16(20),
+      u16(flags),
+      u16(0),
+      u16(now.dosTime),
+      u16(now.dosDate),
+      u32(crc),
+      u32(data.length),
+      u32(data.length),
+      u16(nameBytes.length),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u32(0),
+      u32(localOffset),
+      nameBytes
+    ]);
+
+    centralParts.push(centralHeader);
+    localOffset += localHeader.length + data.length;
+  }
+
+  const localData = concatBytes(localParts);
+  const centralData = concatBytes(centralParts);
+  const end = concatBytes([
+    u32(0x06054B50),
+    u16(0),
+    u16(0),
+    u16(entries.length),
+    u16(entries.length),
+    u32(centralData.length),
+    u32(localData.length),
+    u16(0)
+  ]);
+
+  return new Blob([localData, centralData, end], {
+    type: "application/zip"
+  });
+}
+
+function splitFilename(path) {
+  const normal = path.replaceAll("\\", "/");
+  const slash = normal.lastIndexOf("/");
+  const directory = slash >= 0 ? normal.slice(0, slash + 1) : "";
+  const filename = slash >= 0 ? normal.slice(slash + 1) : normal;
+  const dot = filename.lastIndexOf(".");
+  const stem = dot > 0 ? filename.slice(0, dot) : filename;
+  const extension = dot > 0 ? filename.slice(dot) : "";
+  return { directory, stem, extension };
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/[. ]+$/g, "")
+    .slice(0, 140) || "file";
+}
+
+function datedOutputPath(originalPath, startDate, endDate) {
+  if (!els.renameFiles.checked) {
+    return safeZipPath(originalPath);
+  }
+
+  const parts = splitFilename(originalPath);
+  const startPart = sanitizeFilenamePart(startDate || "NO_START");
+  const endPart = sanitizeFilenamePart(endDate || "OPEN");
+  const stem = sanitizeFilenamePart(parts.stem);
+
+  return safeZipPath(
+    `${parts.directory}${stem}_${startPart}_to_${endPart}${parts.extension || ".xml"}`
+  );
+}
+
+function safeZipPath(path) {
+  return path
+    .replaceAll("\\", "/")
+    .split("/")
+    .filter(part => part && part !== "." && part !== "..")
+    .join("/");
+}
+
+function uniqueZipPath(wanted, used) {
+  let candidate = safeZipPath(wanted);
+  if (!used.has(candidate.toLowerCase())) {
+    used.add(candidate.toLowerCase());
+    return candidate;
+  }
+
+  const dot = candidate.lastIndexOf(".");
+  const base =
+    dot > candidate.lastIndexOf("/") ? candidate.slice(0, dot) : candidate;
+  const ext =
+    dot > candidate.lastIndexOf("/") ? candidate.slice(dot) : "";
+
+  let counter = 2;
+  while (used.has(`${base}_${counter}${ext}`.toLowerCase())) {
+    counter++;
+  }
+  candidate = `${base}_${counter}${ext}`;
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function addDownload(entries, downloadName, summary) {
+  const zipBlob = createStoredZip(entries);
+  clearDownload();
+  currentDownloadUrl = URL.createObjectURL(zipBlob);
+  els.downloadLink.href = currentDownloadUrl;
+  els.downloadLink.download = downloadName;
+  els.downloadLink.textContent = `Download ${downloadName}`;
+  els.downloadPanel.classList.add("visible");
+  els.downloadPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+  els.status.textContent = summary;
+  appendLog(`ZIP created successfully: ${downloadName}`);
+}
+
+async function processAndDownload() {
+  try {
+    showMessage("");
+    clearDownload();
+    appendLog(`Preparing ${els.mode.value} ZIP.`);
+
+    if (!state.rows.length || state.scanSignature !== currentSignature()) {
+      throw new Error(
+        "The inputs changed after scanning. Run Scan and preview again."
+      );
+    }
+
+    const dates = validateDateInputs();
+    const readyRows = state.rows.filter(row => row.processable);
+    if (readyRows.length === 0) {
+      throw new Error("There are no Ready rows to process.");
+    }
+
+    els.processButton.disabled = true;
+    els.scanButton.disabled = true;
+    els.status.textContent = "Creating processed XML and ZIP…";
+
+    const entries = [];
+    const usedPaths = new Set();
+    const reportRows = [];
+
+    if (dates.mode === "sync") {
+      const primaryTexts = new Map(
+        [...state.primaryDocuments].map(([id, doc]) => [id, doc.text])
+      );
+      const secondaryTexts = new Map(
+        [...state.secondaryDocuments].map(([id, doc]) => [id, doc.text])
+      );
+      const changedPrimary = new Set();
+      const changedSecondary = new Set();
+
+      for (const row of readyRows) {
+        const oldRecord = row.oldRecords[0];
+        const newRecord = row.newRecords[0];
+        const oldDoc = state.primaryDocuments.get(oldRecord.documentId);
+        const newDoc = state.secondaryDocuments.get(newRecord.documentId);
+
+        let oldText = primaryTexts.get(oldRecord.documentId);
+        oldText = updateServiceDate(
+          oldText, row.code, "EndDate", dates.oldEnd, oldDoc.newline
+        );
+        primaryTexts.set(oldRecord.documentId, oldText);
+        changedPrimary.add(oldRecord.documentId);
+
+        let newText = secondaryTexts.get(newRecord.documentId);
+        newText = updateServiceDate(
+          newText, row.code, "StartDate", dates.start, newDoc.newline
+        );
+        if (dates.end) {
+          newText = updateServiceDate(
+            newText, row.code, "EndDate", dates.end, newDoc.newline
+          );
+        }
+        secondaryTexts.set(newRecord.documentId, newText);
+        changedSecondary.add(newRecord.documentId);
+
+        reportRows.push({
+          mode: "sync",
+          service_code: row.code,
+          source_role: "old",
+          file: oldRecord.displayPath,
+          original_start: oldRecord.startDate,
+          original_end: oldRecord.endDate,
+          result_start: oldRecord.startDate,
+          result_end: dates.oldEnd,
+          status: "processed"
+        });
+        reportRows.push({
+          mode: "sync",
+          service_code: row.code,
+          source_role: "new",
+          file: newRecord.displayPath,
+          original_start: newRecord.startDate,
+          original_end: newRecord.endDate,
+          result_start: dates.start,
+          result_end: dates.end || newRecord.endDate,
+          status: "processed"
+        });
+      }
+
+      for (const id of changedPrimary) {
+        const doc = state.primaryDocuments.get(id);
+        assertWellFormed(primaryTexts.get(id), doc.file.name);
+        entries.push({
+          name: uniqueZipPath(
+            `OLD_ENDED/${datedOutputPath(
+              doc.displayPath,
+              reportRows.find(row =>
+                row.source_role === "old" && row.file === doc.displayPath
+              )?.result_start || "",
+              reportRows.find(row =>
+                row.source_role === "old" && row.file === doc.displayPath
+              )?.result_end || ""
+            )}`,
+            usedPaths
+          ),
+          bytes: encodeDocument(doc, primaryTexts.get(id))
+        });
+      }
+
+      for (const id of changedSecondary) {
+        const doc = state.secondaryDocuments.get(id);
+        assertWellFormed(secondaryTexts.get(id), doc.file.name);
+        entries.push({
+          name: uniqueZipPath(
+            `NEW_STARTED/${datedOutputPath(
+              doc.displayPath,
+              reportRows.find(row =>
+                row.source_role === "new" && row.file === doc.displayPath
+              )?.result_start || "",
+              reportRows.find(row =>
+                row.source_role === "new" && row.file === doc.displayPath
+              )?.result_end || ""
+            )}`,
+            usedPaths
+          ),
+          bytes: encodeDocument(doc, secondaryTexts.get(id))
+        });
+      }
+
+      entries.push({
+        name: uniqueZipPath("date_sync_report.csv", usedPaths),
+        bytes: new TextEncoder().encode(makeReport(reportRows))
+      });
+
+      addDownload(
+        entries,
+        `TransXChange_Date_Sync_${dates.start}.zip`,
+        `Finished: ${readyRows.length} service pair(s) processed. Click the green Download ZIP link.`
+      );
+    } else {
+      const texts = new Map(
+        [...state.primaryDocuments].map(([id, doc]) => [id, doc.text])
+      );
+      const changed = new Set();
+
+      for (const row of readyRows) {
+        const record = row.record;
+        const doc = state.primaryDocuments.get(record.documentId);
+        let text = texts.get(record.documentId);
+
+        if (dates.mode === "end") {
+          text = updateServiceDate(
+            text, row.code, "EndDate", dates.end, doc.newline
+          );
+        } else {
+          text = updateServiceDate(
+            text, row.code, "StartDate", dates.start, doc.newline
+          );
+          if (dates.end) {
+            text = updateServiceDate(
+              text, row.code, "EndDate", dates.end, doc.newline
+            );
+          }
+        }
+
+        texts.set(record.documentId, text);
+        changed.add(record.documentId);
+
+        reportRows.push({
+          mode: dates.mode,
+          service_code: row.code,
+          source_role: "selected",
+          file: record.displayPath,
+          original_start: record.startDate,
+          original_end: record.endDate,
+          result_start:
+            dates.mode === "start" ? dates.start : record.startDate,
+          result_end:
+            dates.mode === "end"
+              ? dates.end
+              : (dates.end || record.endDate),
+          status: "processed"
+        });
+      }
+
+      const outputFolder =
+        dates.mode === "end" ? "END_DATED" : "START_DATED";
+      for (const id of changed) {
+        const doc = state.primaryDocuments.get(id);
+        assertWellFormed(texts.get(id), doc.file.name);
+        const matchingReport = reportRows.find(
+          row => row.file === doc.displayPath
+        );
+        entries.push({
+          name: uniqueZipPath(
+            `${outputFolder}/${datedOutputPath(
+              doc.displayPath,
+              matchingReport?.result_start || "",
+              matchingReport?.result_end || ""
+            )}`,
+            usedPaths
+          ),
+          bytes: encodeDocument(doc, texts.get(id))
+        });
+      }
+
+      entries.push({
+        name: uniqueZipPath("date_change_report.csv", usedPaths),
+        bytes: new TextEncoder().encode(makeReport(reportRows))
+      });
+
+      const chosenDate =
+        dates.mode === "end" ? dates.end : dates.start;
+      const namePart =
+        dates.mode === "end" ? "End_Date" : "Start_Date";
+
+      addDownload(
+        entries,
+        `TransXChange_${namePart}_${chosenDate}.zip`,
+        `Finished: ${readyRows.length} service(s) processed. Click the green Download ZIP link.`
+      );
+    }
+
+    showMessage(
+      "Processing is complete. Use the green Download ZIP link. " +
+      "The original selected XML files were not changed."
+    );
+  } catch (error) {
+    const detail = error.message || String(error);
+    showMessage(detail, "error");
+    appendLog(`PROCESSING ERROR: ${detail}`);
+    els.status.textContent =
+      "Processing failed. No source files were changed.";
+  } finally {
+    els.scanButton.disabled = false;
+    els.processButton.disabled =
+      !state.rows.some(row => row.processable) ||
+      state.scanSignature !== currentSignature();
+  }
+}
+
+function clearAll() {
+  clearDownload();
+  els.primaryFiles.value = "";
+  els.secondaryFiles.value = "";
+  els.startDate.value = "";
+  els.endDate.value = "";
+  els.renameFiles.checked = true;
+  state.rows = [];
+  state.primaryDocuments = new Map();
+  state.secondaryDocuments = new Map();
+  state.scanSignature = "";
+  els.processButton.disabled = true;
+  els.log.textContent = "Activity log will appear here.";
+  showMessage("");
+  renderPreview([]);
+  els.status.textContent =
+    "Choose a mode, folders and date, then scan.";
+}
+
+els.mode.addEventListener("change", updateModeUi);
+els.scanButton.addEventListener("click", scan);
+els.processButton.addEventListener("click", processAndDownload);
+els.clearButton.addEventListener("click", clearAll);
+
+[
+  els.primaryFiles,
+  els.secondaryFiles,
+  els.startDate,
+  els.endDate,
+  els.renameFiles
+].forEach(element =>
+  element.addEventListener("change", () =>
+    resetScanState("Inputs changed. Run Scan and preview again.")
+  )
+);
+
+updateModeUi();
+</script>
+</body>
+</html>

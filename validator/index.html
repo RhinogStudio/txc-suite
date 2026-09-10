@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>TXC Validator — Check TransXChange Files Online</title>
+  <meta name="description" content="Check TransXChange XML and ZIP files for expiring services, missing operator details and common TXC data-quality problems. Files stay on your device.">
+  <meta name="author" content="Rhinog Studio">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://rhinogstudio.github.io/txc-suite/validator/">
+  <style>
+    :root{--brand:#70459b;--brand-dark:#57327b;--ink:#3f2d52;--muted:#6f6678;--line:#d8cee2;--soft:#f5f0f9;--red:#b42318;--red-bg:#fee4e2;--amber:#7a4d00;--amber-bg:#fff3cd;--green:#157347;--green-bg:#e5f6eb;--blue:#175cd3;--blue-bg:#eaf2ff}
+    *{box-sizing:border-box} body{margin:0;background:#f7f4f9;color:#28222e;font:15px/1.45 "Segoe UI",Arial,sans-serif}
+    .app{max-width:1500px;margin:auto;min-height:100vh;background:#fff;box-shadow:0 0 30px #3f2d5218}
+    header{padding:22px 28px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff}
+    .brand{display:flex;gap:16px;align-items:center}.icon{width:62px;height:62px;flex:none}.brand h1{margin:0;font-size:28px}.brand p{margin:4px 0 0;color:#eee3f7}
+    main{padding:24px 28px 40px}.notice{padding:13px 15px;border:1px solid #cbb7dc;border-radius:8px;background:var(--soft);margin-bottom:18px}
+    fieldset{border:1px solid var(--line);border-radius:10px;padding:18px;margin:0 0 20px}legend{font-weight:700;color:var(--ink);padding:0 8px}
+    .load-grid,.controls,.summary{display:grid;gap:14px}.load-grid{grid-template-columns:1fr 1fr}.controls{grid-template-columns:2fr repeat(3,minmax(150px,1fr));align-items:start}.summary{grid-template-columns:repeat(7,1fr);margin:18px 0}
+    label{display:block;font-weight:650;margin-bottom:5px}.hint{display:block;color:var(--muted);font-size:13px;margin-top:5px}input,select,button{font:inherit}input[type=file],input[type=search],input[type=date],select{width:100%;padding:9px 10px;border:1px solid #aa9db4;border-radius:6px;background:#fff}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}button{border:1px solid #a89ab3;border-radius:6px;background:#fff;padding:9px 14px;font-weight:650;cursor:pointer}button.primary{background:var(--brand);border-color:var(--brand);color:#fff}button:disabled{opacity:.55;cursor:wait}
+    .card{border:1px solid var(--line);border-radius:9px;padding:13px 15px;background:#fff}.card strong{display:block;font-size:27px}.card.expired{border-color:#f1a6a0;background:var(--red-bg);color:var(--red)}.card.warning{border-color:#edcf75;background:var(--amber-bg);color:var(--amber)}.card.current{border-color:#9fd6b3;background:var(--green-bg);color:var(--green)}.card.review{border-color:#a9c5f4;background:var(--blue-bg);color:var(--blue)}.card.data-error{border-color:#e6a3aa;background:#fff0f2;color:#9f1239}.card.data-warning{border-color:#edcf75;background:var(--amber-bg);color:var(--amber)}
+    .statusbar{display:flex;justify-content:space-between;gap:15px;align-items:center;margin:12px 0;color:var(--muted)}
+    .table-wrap{border:1px solid var(--line);border-radius:9px;overflow:auto;max-height:620px}table{border-collapse:separate;border-spacing:0;width:100%;min-width:1220px}th,td{padding:10px 11px;border-bottom:1px solid #e6dfea;text-align:left;vertical-align:top}th{position:sticky;top:0;z-index:2;background:#f0e8f6;color:var(--ink);white-space:nowrap}tr:last-child td{border-bottom:0}tr.row-expired td{background:#fff0ef}tr.row-warning td{background:#fff9e8}tr.row-invalid td{background:#f2f6ff}tr.row-data-error td:first-child{box-shadow:inset 5px 0 #b4233c}
+    .badge{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:750;white-space:nowrap}.badge.expired{background:var(--red-bg);color:var(--red)}.badge.warning{background:var(--amber-bg);color:var(--amber)}.badge.current,.badge.open{background:var(--green-bg);color:var(--green)}.badge.invalid{background:var(--blue-bg);color:var(--blue)}.badge.data-error{background:#ffe0e5;color:#9f1239}.badge.data-warning{background:var(--amber-bg);color:var(--amber)}.badge.data-ok{background:var(--green-bg);color:var(--green)}.data-check-notes{margin-top:5px;color:#7f1d35;font-size:12px;min-width:230px}.data-check-warnings{margin-top:5px;color:#7a4d00;font-size:12px;min-width:230px}.operator-code-values{margin-top:5px;color:var(--muted);font-size:12px}
+    .path{font-size:12px;color:var(--muted);word-break:break-all;max-width:310px}.hidden{display:none!important}.log{white-space:pre-wrap;max-height:135px;overflow:auto;background:#2d203a;color:#f1e9f7;padding:11px;border-radius:7px;font:12px/1.45 Consolas,monospace}.empty{text-align:center;padding:34px;color:var(--muted)}
+    .busy{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:#2d203ad1;backdrop-filter:blur(3px)}.busy-card{width:min(520px,100%);padding:25px;border-radius:12px;background:#fff;box-shadow:0 18px 55px #0005;text-align:center}.spinner{width:42px;height:42px;margin:0 auto 15px;border:5px solid #dfd1ea;border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}.busy h2{margin:0 0 6px;color:var(--ink)}.busy p{margin:5px 0;color:var(--muted)}progress{width:100%;height:16px;margin-top:14px;accent-color:var(--brand)}.busy-detail{min-height:20px;font-size:13px;overflow-wrap:anywhere}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:900px){main,header{padding-left:16px;padding-right:16px}.load-grid,.controls,.summary{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.brand h1{font-size:22px}.icon{width:50px;height:50px}}
+    @media print{header,.load-section,.controls-panel,.actions,.log-panel,.notice{display:none!important}.app{box-shadow:none}.table-wrap{max-height:none;overflow:visible;border:0}table{min-width:0;font-size:9px}th{position:static}.summary{grid-template-columns:repeat(7,1fr)}main{padding:0}}
+  </style>
+</head>
+<body><div class="app">
+  <header><div class="brand"><svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#70459b" stroke="#fff" stroke-width="2"/><rect x="12" y="12" width="40" height="40" rx="8" fill="#fff"/><path d="M20 29h24M20 37h16" stroke="#70459b" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="43" r="5" fill="#c93d4d"/><circle cx="31" cy="43" r="5" fill="#f2b705"/></svg><div><h1>TXC Validator</h1><p>Bulk-check operating periods, initial headsigns and essential TransXChange references.</p></div></div></header>
+  <main>
+    <div class="notice">This validator is read-only and runs entirely inside your browser. It does not upload, modify, rename or overwrite any selected file.</div>
+    <section class="load-section"><fieldset><legend>1. Select TXC data</legend><div class="load-grid">
+      <div><label for="fileInput">XML or ZIP files</label><input id="fileInput" type="file" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple><span class="hint">Select one or more TXC XML files or ZIP archives.</span></div>
+      <div><label for="folderInput">Or select a folder</label><input id="folderInput" type="file" accept=".xml,.zip,text/xml,application/xml,application/zip" multiple webkitdirectory directory><span class="hint">XML and ZIP files in all subfolders will be checked.</span></div>
+    </div><div class="actions"><button id="scan" class="primary">Scan and validate</button><button id="clear">Clear validator</button></div></fieldset></section>
+    <section class="controls-panel"><fieldset><legend>2. Validation settings and filters</legend><div class="controls">
+      <div><label for="search">Find a result</label><input id="search" type="search" placeholder="Search filename, operator, line, route or ServiceCode"></div>
+      <div><label for="asOf">Validation date</label><input id="asOf" type="date"><span class="hint">End dates on or before this day are expired.</span></div>
+      <div><label for="statusFilter">Status</label><select id="statusFilter"><option value="all">All statuses</option><option value="dataError">Data check errors</option><option value="dataWarning">Data check warnings</option><option value="expired">Expired</option><option value="warning">Expiring within 31 days</option><option value="current">Current</option><option value="open">No EndDate</option><option value="invalid">Invalid dates</option></select></div>
+      <div><label for="sort">Sort results</label><select id="sort"><option value="status">Status priority</option><option value="endAsc">End date (earliest first)</option><option value="endDesc">End date (latest first)</option><option value="service">ServiceCode</option><option value="source">Source file</option></select></div>
+    </div></fieldset></section>
+    <section id="results" class="hidden">
+      <div class="summary"><div class="card"><span>Services checked</span><strong id="total">0</strong></div><div class="card data-error"><span>Data errors</span><strong id="dataErrors">0</strong></div><div class="card data-warning"><span>Data warnings</span><strong id="dataWarnings">0</strong></div><div class="card expired"><span>Expired</span><strong id="expired">0</strong></div><div class="card warning"><span>Within 31 days</span><strong id="warning">0</strong></div><div class="card current"><span>Current / open</span><strong id="current">0</strong></div><div class="card review"><span>Invalid dates</span><strong id="review">0</strong></div></div>
+      <div class="actions"><button id="csv" class="primary">Export validation CSV</button><button id="print">Print report</button></div>
+      <div class="statusbar"><span id="status">No results.</span><span id="reference"></span></div>
+      <div class="table-wrap"><table><thead><tr><th>Date status</th><th>Days</th><th>End date</th><th>Start date</th><th>ServiceCode</th><th>Line</th><th>Operator</th><th>Description</th><th>Source file</th><th>Data checks</th><th>Date notes</th></tr></thead><tbody id="body"></tbody></table></div>
+    </section>
+    <section class="log-panel"><fieldset><legend>Activity log</legend><div id="log" class="log">Activity log will appear here.</div></fieldset></section>
+  </main>
+</div>
+<div id="busy" class="busy hidden" role="dialog" aria-modal="true" aria-labelledby="busyTitle" aria-live="polite"><div class="busy-card"><div class="spinner" aria-hidden="true"></div><h2 id="busyTitle">Validating TXC files…</h2><p id="busyMessage">Preparing the selected files.</p><progress id="busyProgress"></progress><p id="busyDetail" class="busy-detail">Please keep this tab open. The validator is still working.</p></div></div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id); const els={fileInput:$("fileInput"),folderInput:$("folderInput"),scan:$("scan"),clear:$("clear"),search:$("search"),asOf:$("asOf"),statusFilter:$("statusFilter"),sort:$("sort"),results:$("results"),body:$("body"),status:$("status"),reference:$("reference"),log:$("log"),busy:$("busy"),busyMessage:$("busyMessage"),busyProgress:$("busyProgress"),busyDetail:$("busyDetail")};
+const state={rows:[],documents:0,errors:0}; const pad=n=>String(n).padStart(2,"0"); const isoLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; els.asOf.value=isoLocal(new Date());
+function log(message){const stamp=new Date().toLocaleTimeString();els.log.textContent=(els.log.textContent==="Activity log will appear here."?"":els.log.textContent+"\n")+`[${stamp}] ${message}`;els.log.scrollTop=els.log.scrollHeight}
+const breathe=()=>new Promise(resolve=>setTimeout(resolve,0));
+function progress(message,detail="",value=null,max=null){els.busyMessage.textContent=message;els.busyDetail.textContent=detail||"Please keep this tab open. The validator is still working.";if(value===null||max===null){els.busyProgress.removeAttribute("value");els.busyProgress.removeAttribute("max")}else{els.busyProgress.max=Math.max(1,max);els.busyProgress.value=Math.min(value,max)}}
+function lname(el){return el?.localName||el?.nodeName?.split(":").pop()||""} function children(el,name){return Array.from(el?.children||[]).filter(x=>lname(x)===name)} function child(el,name){return children(el,name)[0]||null} function descendants(el,name){return Array.from(el?.getElementsByTagName("*")||[]).filter(x=>lname(x)===name)} function text(el){return(el?.textContent||"").trim()} function dtext(el,name){return text(child(el,name))}
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function parseDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value||""))return null;const [y,m,d]=value.split("-").map(Number),date=new Date(y,m-1,d);return date.getFullYear()===y&&date.getMonth()===m-1&&date.getDate()===d?date:null}
+function dayDiff(a,b){return Math.round((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000)}
+function parseXml(value,name){const xml=new DOMParser().parseFromString(value,"application/xml"),err=descendants(xml,"parsererror")[0];if(err)throw new Error(`${name} is not well-formed XML. ${text(err).replace(/\s+/g," ").slice(0,180)}`);return xml}
+function u16(v,o){return v.getUint16(o,true)} function u32(v,o){return v.getUint32(o,true)} function eocd(bytes){for(let o=bytes.length-22;o>=Math.max(0,bytes.length-65557);o--)if(bytes[o]===80&&bytes[o+1]===75&&bytes[o+2]===5&&bytes[o+3]===6)return o;return-1}
+async function inflate(bytes){if(!("DecompressionStream" in window))throw new Error("This Edge version cannot unpack compressed ZIPs. Extract the ZIP and select the folder instead.");const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));return new Uint8Array(await new Response(stream).arrayBuffer())}
+async function unzip(file,onEntry){const bytes=new Uint8Array(await file.arrayBuffer()),view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),end=eocd(bytes);if(end<0)throw new Error(`${file.name} is not a readable ZIP file.`);const count=u16(view,end+10),decoder=new TextDecoder("utf-8");let offset=u32(view,end+16),found=0;for(let i=0;i<count;i++){if(i%20===0){progress(`Reading ${file.name}`,`Checking ZIP directory ${i+1} of ${count}…`,i,count);await breathe()}if(u32(view,offset)!==0x02014b50)throw new Error(`${file.name} has an invalid ZIP directory.`);const flags=u16(view,offset+8),method=u16(view,offset+10),size=u32(view,offset+20),nl=u16(view,offset+28),xl=u16(view,offset+30),cl=u16(view,offset+32),local=u32(view,offset+42),name=decoder.decode(bytes.slice(offset+46,offset+46+nl)).replaceAll("\\","/");offset+=46+nl+xl+cl;if(name.endsWith("/")||!name.toLowerCase().endsWith(".xml")||name.includes("__MACOSX/"))continue;if(flags&1)throw new Error(`${name} is encrypted.`);if(u32(view,local)!==0x04034b50)throw new Error(`${name} has an invalid ZIP entry.`);const start=local+30+u16(view,local+26)+u16(view,local+28),packed=bytes.slice(start,start+size),entryBytes=method===0?packed:method===8?await inflate(packed):(()=>{throw new Error(`${name} uses unsupported ZIP compression method ${method}.`)})();found++;await onEntry({name:`${file.name} › ${name}`,bytes:entryBytes},found);await breathe()}if(!found)throw new Error(`${file.name} contains no XML files.`)}
+function decode(bytes,name){let offset=bytes[0]===239&&bytes[1]===187&&bytes[2]===191?3:0;const head=new TextDecoder("ascii").decode(bytes.slice(offset,offset+512)),m=head.match(/<\?xml[^>]*encoding=["']\s*([^"']+)/i);if(m&&!/^(utf-?8)$/i.test(m[1].replaceAll("_","-")))throw new Error(`${name} declares ${m[1]} encoding; this validator supports UTF-8 TXC files.`);try{return new TextDecoder("utf-8",{fatal:true}).decode(bytes.slice(offset))}catch{throw new Error(`${name} is not valid UTF-8 XML.`)}}
+async function collect(onDocument){const selected=[...els.fileInput.files,...els.folderInput.files].filter(f=>/\.(xml|zip)$/i.test(f.name)),seen=new Set(),failures=[];let documents=0;if(!selected.length)throw new Error("Select at least one TXC XML file, ZIP file, or folder.");const accept=async c=>{try{progress("Parsing TXC data",c.name);await breathe();const doc={name:c.name,xml:parseXml(decode(c.bytes,c.name),c.name)};documents++;await onDocument(doc);doc.xml=null}catch(e){failures.push(e.message)}};for(let i=0;i<selected.length;i++){const file=selected[i],id=[file.webkitRelativePath||file.name,file.size,file.lastModified].join("|");if(seen.has(id))continue;seen.add(id);progress(`Processing selected file ${i+1} of ${selected.length}`,file.webkitRelativePath||file.name,i,selected.length);await breathe();try{if(/\.zip$/i.test(file.name))await unzip(file,accept);else await accept({name:file.webkitRelativePath||file.name,bytes:new Uint8Array(await file.arrayBuffer())})}catch(e){failures.push(`${file.webkitRelativePath||file.name}: ${e.message}`)}}return{documents,failures}}
+function operators(xml){const map=new Map;descendants(xml,"Operator").forEach(o=>{const id=o.getAttribute("id")||dtext(o,"OperatorCode"),code=dtext(o,"OperatorCode"),short=dtext(o,"OperatorShortName"),name=dtext(o,"TradingName")||dtext(o,"OperatorName")||short; if(id)map.set(id,{code,name:short||name||code});if(code)map.set(code,{code,name:short||name||code})});return map}
+function missingOrPlaceholder(value){return !String(value||"").trim()||/^(null|n\/?a|none|undefined)$/i.test(String(value).trim())}
+function serviceValidationIssues(service,xml){
+  const issues=[];
+  const warnings=[];
+  let operatorCodes={nationalCode:"",operatorCode:""};
+  const standard=child(service,"StandardService");
+  if(!standard)return{issues,warnings,operatorCodes};
+
+  const origin=dtext(standard,"Origin");
+  const destination=dtext(standard,"Destination");
+  if(missingOrPlaceholder(origin)){
+    issues.push("Missing or invalid published Origin");
+  }
+  if(missingOrPlaceholder(destination)){
+    issues.push("Missing or invalid published Destination");
+  }
+
+  const operatorRef=dtext(service,"RegisteredOperatorRef");
+  const registeredOperator=descendants(xml,"Operator").find(operator=>
+    (operator.getAttribute("id")||"")===operatorRef||
+    dtext(operator,"OperatorCode")===operatorRef
+  );
+  if(!operatorRef){
+    issues.push("Missing RegisteredOperatorRef; NationalOperatorCode cannot be verified");
+  }else if(!registeredOperator){
+    issues.push(`RegisteredOperatorRef ${operatorRef} was not found; NationalOperatorCode cannot be verified`);
+  }else{
+    const nationalCode=dtext(registeredOperator,"NationalOperatorCode");
+    const operatorCode=dtext(registeredOperator,"OperatorCode");
+    operatorCodes={nationalCode,operatorCode};
+    if(missingOrPlaceholder(nationalCode)&&missingOrPlaceholder(operatorCode)){
+      issues.push(`Registered operator ${operatorRef}: missing or invalid NationalOperatorCode / OperatorCode`);
+    }else if(missingOrPlaceholder(nationalCode)){
+      warnings.push(
+        `NationalOperatorCode not supplied; OperatorCode is ${operatorCode}`
+      );
+    }
+  }
+
+  const patterns=children(standard,"JourneyPattern");
+  const patternMap=new Map;
+  const sectionIds=new Set(
+    descendants(xml,"JourneyPatternSection")
+      .map(section=>section.getAttribute("id")||"")
+      .filter(Boolean)
+  );
+
+  if(!patterns.length){
+    issues.push("StandardService has no JourneyPattern records");
+  }
+
+  patterns.forEach((pattern,index)=>{
+    const id=pattern.getAttribute("id")||`JourneyPattern ${index+1}`;
+    patternMap.set(id,pattern);
+    const display=dtext(pattern,"DestinationDisplay");
+    if(missingOrPlaceholder(display)){
+      issues.push(`${id}: missing or invalid initial DestinationDisplay`);
+    }
+
+    const refs=children(pattern,"JourneyPatternSectionRefs")
+      .flatMap(item=>text(item).split(/\s+/).filter(Boolean));
+    if(!refs.length){
+      issues.push(`${id}: no JourneyPatternSectionRefs`);
+    }else{
+      refs.filter(ref=>!sectionIds.has(ref)).forEach(ref=>
+        issues.push(`${id}: JourneyPatternSectionRef ${ref} was not found`)
+      );
+    }
+  });
+
+  const serviceCode=dtext(service,"ServiceCode");
+  const journeys=descendants(xml,"VehicleJourney")
+    .filter(journey=>dtext(journey,"ServiceRef")===serviceCode);
+
+  journeys.forEach((journey,index)=>{
+    const code=dtext(journey,"VehicleJourneyCode")||
+      dtext(journey,"PrivateCode")||`VehicleJourney ${index+1}`;
+    const patternRef=dtext(journey,"JourneyPatternRef");
+    if(!patternRef){
+      issues.push(`${code}: missing JourneyPatternRef`);
+      return;
+    }
+    const pattern=patternMap.get(patternRef);
+    if(!pattern){
+      issues.push(`${code}: JourneyPatternRef ${patternRef} was not found in this service`);
+      return;
+    }
+
+    const journeyDirection=dtext(journey,"Direction").toLowerCase();
+    const patternDirection=dtext(pattern,"Direction").toLowerCase();
+    const simpleDirections=new Set(["inbound","outbound"]);
+    if(simpleDirections.has(journeyDirection)&&
+       simpleDirections.has(patternDirection)&&
+       journeyDirection!==patternDirection){
+      issues.push(
+        `${code}: ${journeyDirection} VehicleJourney references `+
+        `${patternRef}, which is ${patternDirection}`
+      );
+    }
+  });
+
+  return{
+    issues:Array.from(new Set(issues)),
+    warnings:Array.from(new Set(warnings)),
+    operatorCodes
+  };
+}
+
+function rowsFrom(doc){
+  const ops=operators(doc.xml),services=descendants(doc.xml,"Service");
+  return services.map((service,index)=>{
+    const opRef=dtext(service,"RegisteredOperatorRef");
+    const op=ops.get(opRef)||{code:opRef,name:""};
+    const period=child(service,"OperatingPeriod");
+    const lines=child(service,"Lines");
+    const line=lines
+      ?children(lines,"Line").map(x=>dtext(x,"LineName")).filter(Boolean).join(" / ")
+      :"";
+    const checks=serviceValidationIssues(service,doc.xml);
+    return{
+      source:doc.name,
+      index:index+1,
+      serviceCode:dtext(service,"ServiceCode"),
+      line,
+      operator:[op.code,op.name].filter(Boolean).join(" – "),
+      description:dtext(service,"Description"),
+      start:period?dtext(period,"StartDate"):"",
+      end:period?dtext(period,"EndDate"):"",
+      period:!!period,
+      issues:checks.issues,
+      warnings:checks.warnings,
+      operatorCodes:checks.operatorCodes
+    };
+  });
+}
+function classify(row,ref){const notes=[];if(!row.period)return{status:"invalid",days:null,note:"No OperatingPeriod"};const start=row.start?parseDate(row.start):null;if(!row.start)notes.push("No StartDate");else if(!start)notes.push("Invalid StartDate");if(!row.end)return{status:notes.length?"invalid":"open",days:null,note:notes.length?notes.join("; "):"No EndDate (open-ended)"};const end=parseDate(row.end);if(!end)return{status:"invalid",days:null,note:[...notes,"Invalid EndDate"].join("; ")};if(start&&start>end)notes.push("StartDate is after EndDate");if(notes.length)return{status:"invalid",days:dayDiff(end,ref),note:notes.join("; ")};const days=dayDiff(end,ref);return days<=0?{status:"expired",days,note:days===0?"Ends on validation date":""}:days<=31?{status:"warning",days,note:""}:{status:"current",days,note:""}}
+const labels={expired:"Expired",warning:"Expiring soon",current:"Current",open:"No EndDate",invalid:"Invalid dates"},rank={expired:0,warning:1,invalid:2,current:3,open:4};
+function enriched(){const ref=parseDate(els.asOf.value)||new Date();return state.rows.map(r=>Object.assign({},r,classify(r,ref)))}
+function render(){
+  if(!state.rows.length)return;
+  const ref=parseDate(els.asOf.value);
+  if(!ref){els.asOf.value=isoLocal(new Date());return render()}
+  const all=enriched(),counts={expired:0,warning:0,current:0,open:0,invalid:0};
+  all.forEach(r=>counts[r.status]++);
+  const dataErrors=all.filter(r=>r.issues?.length).length;
+  const dataWarnings=all.filter(r=>r.warnings?.length).length;
+  $("total").textContent=all.length;
+  $("dataErrors").textContent=dataErrors;
+  $("dataWarnings").textContent=dataWarnings;
+  $("expired").textContent=counts.expired;
+  $("warning").textContent=counts.warning;
+  $("current").textContent=counts.current+counts.open;
+  $("review").textContent=counts.invalid;
+
+  const q=els.search.value.trim().toLowerCase(),filter=els.statusFilter.value;
+  let rows=all.filter(r=>{
+    const matchesFilter=filter==="all"||
+      (filter==="dataError"?Boolean(r.issues?.length):
+       filter==="dataWarning"?Boolean(r.warnings?.length):r.status===filter);
+    const haystack=[r.source,r.serviceCode,r.line,r.operator,r.description,
+      ...(r.issues||[]),...(r.warnings||[]),
+      r.operatorCodes?.nationalCode,r.operatorCodes?.operatorCode]
+      .join(" ").toLowerCase();
+    return matchesFilter&&(!q||haystack.includes(q));
+  });
+
+  const sort=els.sort.value;
+  rows.sort((a,b)=>sort==="endAsc"
+    ?(a.end||"9999").localeCompare(b.end||"9999")
+    :sort==="endDesc"?(b.end||"").localeCompare(a.end||"")
+    :sort==="service"?a.serviceCode.localeCompare(b.serviceCode)
+    :sort==="source"?a.source.localeCompare(b.source)
+    :(rank[a.status]-rank[b.status]||(a.end||"9999").localeCompare(b.end||"9999")));
+
+  els.body.innerHTML=rows.length?rows.map(r=>{
+    const errorHtml=r.issues?.length
+      ?`<span class="badge data-error">Error · ${r.issues.length}</span>`+
+       `<div class="data-check-notes">${r.issues.map(issue=>`• ${esc(issue)}`).join("<br>")}</div>`
+      :"";
+    const warningHtml=r.warnings?.length
+      ?`<span class="badge data-warning">Warning · ${r.warnings.length}</span>`+
+       `<div class="data-check-warnings">${r.warnings.map(warning=>`• ${esc(warning)}`).join("<br>")}</div>`
+      :"";
+    const codeHtml=`<div class="operator-code-values">`+
+      `NationalOperatorCode: <strong>${esc(r.operatorCodes?.nationalCode||"Not supplied")}</strong><br>`+
+      `OperatorCode: <strong>${esc(r.operatorCodes?.operatorCode||"Not supplied")}</strong></div>`;
+    const issueHtml=errorHtml+warningHtml+
+      (!errorHtml&&!warningHtml?`<span class="badge data-ok">Passed</span>`:"")+codeHtml;
+    return `<tr class="row-${r.status}${r.issues?.length?" row-data-error":""}">`+
+      `<td><span class="badge ${r.status}">${labels[r.status]}</span></td>`+
+      `<td>${r.days===null?"—":r.days<0?`${Math.abs(r.days)} overdue`:r.days===0?"Today":`${r.days} days`}</td>`+
+      `<td>${esc(r.end||"—")}</td><td>${esc(r.start||"—")}</td>`+
+      `<td>${esc(r.serviceCode||"—")}</td><td>${esc(r.line||"—")}</td>`+
+      `<td>${esc(r.operator||"—")}</td><td>${esc(r.description||"—")}</td>`+
+      `<td class="path">${esc(r.source)}</td><td>${issueHtml}</td>`+
+      `<td>${esc(r.note||"")}</td></tr>`;
+  }).join(""):`<tr><td colspan="11" class="empty">No results match the current filters.</td></tr>`;
+
+  els.status.textContent=`Showing ${rows.length} of ${all.length} service record(s) `+
+    `from ${state.documents} XML document(s)${state.errors?`; ${state.errors} file error(s)`:""}.`;
+  els.reference.textContent=`Validation date: ${els.asOf.value} · Warning window ends: `+
+    `${isoLocal(new Date(ref.getFullYear(),ref.getMonth(),ref.getDate()+31))}`;
+}
+async function scan(){els.scan.disabled=true;els.busy.classList.remove("hidden");progress("Preparing validation");await breathe();try{log("Starting operating date and essential data validation.");state.rows=[];state.errors=0;const collected=await collect(async doc=>{try{const rows=rowsFrom(doc);if(!rows.length){state.errors++;log(`REVIEW: ${doc.name} contains no Service records.`)}else state.rows.push(...rows)}catch(e){state.errors++;log(`ERROR: ${doc.name}: ${e.message}`)}await breathe()});state.errors+=collected.failures.length;collected.failures.forEach(e=>log(`ERROR: ${e}`));if(!state.rows.length)throw new Error(`No readable TransXChange Service records were found.${state.errors?" Check the activity log for file errors.":""}`);state.documents=collected.documents;progress("Preparing results",`${state.rows.length} service records found…`);await breathe();els.results.classList.remove("hidden");render();const dataErrorCount=state.rows.filter(row=>row.issues?.length).length;const dataWarningCount=state.rows.filter(row=>row.warnings?.length).length;log(`Completed: ${state.documents} readable XML document(s), ${state.rows.length} service record(s), ${dataErrorCount} service(s) with data errors, ${dataWarningCount} service(s) with data warnings, ${state.errors} file error(s).`);els.results.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){alert(e.message||String(e));log(`SCAN ERROR: ${e.message||e}`)}finally{els.busy.classList.add("hidden");els.scan.disabled=false}}
+function clearAll(){els.fileInput.value="";els.folderInput.value="";els.search.value="";els.statusFilter.value="all";els.sort.value="status";els.asOf.value=isoLocal(new Date());state.rows=[];state.documents=state.errors=0;els.results.classList.add("hidden");els.body.innerHTML="";els.log.textContent="Activity log will appear here."}
+function csvCell(v){return`"${String(v??"").replaceAll('"','""')}"`} function exportCsv(){const rows=enriched(),header=["Date status","Days until EndDate","EndDate","StartDate","ServiceCode","Line","Operator","Description","Source file","Data check result","Data check errors","Data check warnings","NationalOperatorCode","OperatorCode","Date notes","Validation date"];const lines=[header,...rows.map(r=>[labels[r.status],r.days??"",r.end,r.start,r.serviceCode,r.line,r.operator,r.description,r.source,r.issues?.length?"ERROR":r.warnings?.length?"WARNING":"PASSED",(r.issues||[]).join("; "),(r.warnings||[]).join("; "),r.operatorCodes?.nationalCode||"",r.operatorCodes?.operatorCode||"",r.note,els.asOf.value])].map(a=>a.map(csvCell).join(","));const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`TXC_validation_${els.asOf.value}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);log("Exported validation results to CSV.")}
+els.scan.addEventListener("click",scan);els.clear.addEventListener("click",clearAll);[els.search,els.asOf,els.statusFilter,els.sort].forEach(e=>e.addEventListener(e===els.search?"input":"change",render));$("csv").addEventListener("click",exportCsv);$("print").addEventListener("click",()=>window.print());
+</script></body></html>

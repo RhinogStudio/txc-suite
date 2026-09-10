@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TXC Suite — Free TransXChange Tools</title>
+  <meta name="description" content="Free browser-based tools for viewing, validating and updating UK TransXChange (TXC) timetable files. Files stay on your device.">
+  <meta name="author" content="Rhinog Studio">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://rhinogstudio.github.io/txc-suite/">
+  <link rel="icon" type="image/png" href="assets/viewer.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TXC Suite — Free TransXChange Tools">
+  <meta property="og:description" content="View, validate and update TransXChange timetable files securely in your browser.">
+  <meta property="og:url" content="https://rhinogstudio.github.io/txc-suite/">
+  <meta name="theme-color" content="#102c27">
+  <style>
+    :root{--ink:#102c27;--muted:#61736f;--paper:#f5f8f6;--white:#fff;--line:#d8e2df;--gold:#dca33b;--teal:#087f6b;--blue:#0b63a6;--purple:#70459b}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:inherit}.shell{width:min(1160px,calc(100% - 40px));margin:auto}
+    header{position:relative;overflow:hidden;padding:32px 0 88px;color:#fff;background:radial-gradient(circle at 82% 8%,#2a5b4e 0,transparent 38%),linear-gradient(145deg,#071916,#102c27 68%,#173d34)}
+    header:after{content:"";position:absolute;inset:auto -5% -78px;height:180px;background:var(--paper);transform:rotate(-3deg)}
+    nav{display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-weight:850;letter-spacing:.05em}.brand span{color:var(--gold)}
+    .repo{padding:9px 14px;border:1px solid #ffffff45;border-radius:999px;text-decoration:none;font-weight:700;background:#ffffff0d}.repo:hover{background:#ffffff19}
+    .hero{position:relative;z-index:1;max-width:790px;padding:86px 0 64px}.eyebrow{margin:0 0 12px;color:#a9d7ca;font-size:.78rem;font-weight:850;letter-spacing:.18em;text-transform:uppercase}.hero h1{margin:0;font-size:clamp(3rem,8vw,6.3rem);line-height:.92;letter-spacing:-.055em}.hero h1 span{color:var(--gold)}.hero>p:last-child{max-width:690px;margin:28px 0 0;color:#d9e6e2;font-size:clamp(1.05rem,2vw,1.3rem)}
+    main{position:relative;z-index:2;padding:0 0 72px}.intro{display:grid;grid-template-columns:1.4fr .8fr;gap:28px;align-items:start;margin-top:-36px}.intro-copy,.privacy{padding:30px;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:0 18px 50px #102c2710}.intro h2{margin:0 0 8px;font-size:1.55rem}.intro p{margin:0;color:var(--muted)}.privacy{background:#e9f5f1;border-color:#bcded4}.privacy strong{display:block;margin-bottom:6px;color:#075f51}.privacy span{color:#47635d}
+    .tools-heading{margin:72px 0 28px}.tools-heading h2{margin:0;font-size:clamp(2rem,4vw,3.2rem);letter-spacing:-.035em}.tools-heading p{margin:8px 0 0;color:var(--muted)}
+    .tools{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.tool{display:flex;min-height:360px;flex-direction:column;padding:28px;border:1px solid var(--line);border-radius:24px;background:var(--white);box-shadow:0 16px 40px #102c270b;transition:transform .2s,box-shadow .2s}.tool:hover{transform:translateY(-5px);box-shadow:0 24px 54px #102c2717}.tool img{width:72px;height:72px;object-fit:contain}.tool small{margin:24px 0 8px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.tool h3{margin:0;font-size:1.75rem;line-height:1.15}.tool p{flex:1;color:var(--muted)}.tool a{align-self:flex-start;padding:11px 18px;border-radius:12px;color:#fff;text-decoration:none;font-weight:800}.viewer small{color:var(--teal)}.viewer a{background:var(--teal)}.dates small{color:var(--blue)}.dates a{background:var(--blue)}.validator small{color:var(--purple)}.validator a{background:var(--purple)}
+    .about{display:grid;grid-template-columns:.7fr 1.3fr;gap:34px;margin-top:74px;padding:42px;border-radius:26px;background:#102c27;color:#fff}.about h2{margin:0;font-size:2.1rem}.about p{margin:0;color:#ceddd8}.about code{color:#f0be61}
+    footer{padding:28px 0;border-top:1px solid var(--line);color:var(--muted);font-size:.92rem}.footer-row{display:flex;justify-content:space-between;gap:20px}.footer-row a{font-weight:700}
+    @media(max-width:850px){.intro,.about{grid-template-columns:1fr}.tools{grid-template-columns:1fr}.tool{min-height:auto}.hero{padding-top:62px}.about{padding:30px}}
+    @media(max-width:520px){.shell{width:min(100% - 26px,1160px)}header{padding-top:22px}.repo{font-size:.82rem}.intro-copy,.privacy,.tool{padding:22px}.footer-row{flex-direction:column}}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"TXC Suite","url":"https://rhinogstudio.github.io/txc-suite/","description":"Free browser-based TransXChange timetable tools from Rhinog Studio.","hasPart":[{"@type":"SoftwareApplication","name":"TXC Viewer","applicationCategory":"DeveloperApplication","operatingSystem":"Web browser","url":"https://rhinogstudio.github.io/txc-suite/viewer/"},{"@type":"SoftwareApplication","name":"TXC Date Tool","applicationCategory":"DeveloperApplication","operatingSystem":"Web browser","url":"https://rhinogstudio.github.io/txc-suite/date-tool/"},{"@type":"SoftwareApplication","name":"TXC Validator","applicationCategory":"DeveloperApplication","operatingSystem":"Web browser","url":"https://rhinogstudio.github.io/txc-suite/validator/"}]}</script>
+</head>
+<body>
+  <header>
+    <div class="shell">
+      <nav><div class="brand">RHINOG <span>STUDIO</span></div><a class="repo" href="https://github.com/RhinogStudio/txc-suite">View on GitHub</a></nav>
+      <div class="hero"><p class="eyebrow">Browser-based public transport data tools</p><h1>TXC <span>Suite.</span></h1><p>View, validate and safely update UK TransXChange timetable files using practical tools that run entirely on your device.</p></div>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="intro" aria-label="About TXC Suite"><div class="intro-copy"><h2>Useful tools, without the installation</h2><p>Choose files from your computer, work with them in the browser and download your results. The suite is designed for operators, data teams and anyone who needs to inspect or maintain TXC data.</p></div><div class="privacy"><strong>Your files remain private</strong><span>Processing happens locally in your browser. Selected timetable files are not uploaded to Rhinog Studio or GitHub.</span></div></section>
+    <section aria-labelledby="tools-title"><div class="tools-heading"><p class="eyebrow" style="color:#087f6b">Choose a tool</p><h2 id="tools-title">Three focused ways to work with TXC</h2><p>No account, installer or browser extension required.</p></div>
+      <div class="tools">
+        <article class="tool viewer"><img src="assets/viewer.png" alt=""><small>Explore</small><h3>TXC Viewer</h3><p>Turn TransXChange files into readable combined timetables with journey codes and destination information, then export useful results.</p><a href="viewer/">Open the Viewer</a></article>
+        <article class="tool dates"><img src="assets/date-tool.png" alt=""><small>Update</small><h3>TXC Date Tool</h3><p>Review and batch-change operating dates while preserving the original source files and managing clear output filenames.</p><a href="date-tool/">Open the Date Tool</a></article>
+        <article class="tool validator"><img src="assets/validator.png" alt=""><small>Check</small><h3>TXC Validator</h3><p>Scan XML files, ZIP archives or folders for expiring services and common data-quality or reference problems.</p><a href="validator/">Open the Validator</a></article>
+      </div>
+    </section>
+    <section class="about"><h2>What is TXC?</h2><p>TransXChange is the UK standard used to exchange public transport timetable information as XML. TXC Suite helps make those structured files easier to understand and maintain without sending operational data to an external service.</p></section>
+  </main>
+  <footer><div class="shell footer-row"><span>© 2026 Rhinog Studio. TXC Suite is an independent utility collection.</span><a href="https://github.com/RhinogStudio/txc-suite">Source and issue reporting</a></div></footer>
+</body>
+</html>
