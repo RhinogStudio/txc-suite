@@ -271,6 +271,8 @@
       margin: 6px 0 0 20px;
       padding: 0;
     }
+    .source-gaps summary { cursor: pointer; font-weight: 750; }
+    .source-gaps[open] summary { margin-bottom: 8px; }
 
     .pattern-card {
       border: 1px solid #d4dbe2;
@@ -365,6 +367,21 @@
       font-weight: 650;
     }
 
+    .time-role {
+      display: inline-block;
+      min-width: 30px;
+      margin-left: 7px;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: #e2edf3;
+      color: #35586e;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
     .stop-code {
       display: block;
       margin-top: 2px;
@@ -451,6 +468,17 @@
       font-family: Consolas, "Courier New", monospace;
       font-size: 13px;
       font-weight: 850;
+    }
+
+    .journey-destination {
+      max-width: 145px;
+      margin: 3px auto 0;
+      overflow: hidden;
+      color: #526979;
+      font-size: 9px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .journey-code-value.missing {
@@ -868,7 +896,7 @@
 </svg></div>
       <div>
         <h1>TXC Viewer</h1>
-        <p>Offline TXC viewing with combined timetables, journey codes and destination information.</p>
+        <p>Offline TXC viewing with combined timetables, journey codes and destination information. · Suite build 2026.09.10.1</p>
       </div>
     </div>
   </header>
@@ -1318,13 +1346,13 @@ async function collectInputDocuments() {
   return documents;
 }
 
-function parseDurationSeconds(value) {
-  if (!value) return 0;
+function parseOptionalDurationSeconds(value) {
+  if (!value) return null;
 
   const match = String(value).trim().match(
     /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i
   );
-  if (!match) return 0;
+  if (!match) return null;
 
   return (
     Number(match[1] || 0) * 86400 +
@@ -1332,6 +1360,10 @@ function parseDurationSeconds(value) {
     Number(match[3] || 0) * 60 +
     Number(match[4] || 0)
   );
+}
+
+function parseDurationSeconds(value) {
+  return parseOptionalDurationSeconds(value) ?? 0;
 }
 
 function parseClockSeconds(value) {
@@ -1431,7 +1463,7 @@ function parseJourneyPatternSections(xml) {
       id: link.getAttribute("id") || "",
       from: endpointData(directChild(link, "From")),
       to: endpointData(directChild(link, "To")),
-      runTime: parseDurationSeconds(directText(link, "RunTime"))
+      runTime: parseOptionalDurationSeconds(directText(link, "RunTime"))
     }));
 
     sections.set(id, { id, links });
@@ -1866,19 +1898,26 @@ function parseVehicleJourneyOverrides(vehicleJourney) {
 
     const from = directChild(item, "From");
     const to = directChild(item, "To");
+    const fromWaitElement = from ? directChild(from, "WaitTime") : null;
+    const toWaitElement = to ? directChild(to, "WaitTime") : null;
 
     overrides.set(ref, {
+      hasFrom: Boolean(from),
+      hasTo: Boolean(to),
+      hasFromWait: Boolean(fromWaitElement),
+      hasToWait: Boolean(toWaitElement),
+      hasRunTime: Boolean(directChild(item, "RunTime")),
       runTime:
         directChild(item, "RunTime")
-          ? parseDurationSeconds(directText(item, "RunTime"))
+          ? parseOptionalDurationSeconds(directText(item, "RunTime"))
           : null,
       fromWait:
-        from && directChild(from, "WaitTime")
-          ? parseDurationSeconds(directText(from, "WaitTime"))
+        fromWaitElement
+          ? parseOptionalDurationSeconds(nodeText(fromWaitElement))
           : null,
       toWait:
-        to && directChild(to, "WaitTime")
-          ? parseDurationSeconds(directText(to, "WaitTime"))
+        toWaitElement
+          ? parseOptionalDurationSeconds(nodeText(toWaitElement))
           : null,
       fromDynamicDestinationDisplay:
         from && directChild(from, "DynamicDestinationDisplay")
@@ -1901,6 +1940,10 @@ function parseVehicleJourneys(xml, organisations = new Map()) {
       organisations
     );
     const effectivePeriod = profileDateEnvelope(profile);
+    const endDeadRun = directChild(vehicleJourney, "EndDeadRun");
+    const endShortWorking = endDeadRun
+      ? directChild(endDeadRun, "ShortWorking")
+      : null;
 
     return {
       id: `VJ${index + 1}`,
@@ -1914,6 +1957,10 @@ function parseVehicleJourneys(xml, organisations = new Map()) {
       serviceRef: directText(vehicleJourney, "ServiceRef"),
       lineRef: directText(vehicleJourney, "LineRef"),
       journeyPatternRef: directText(vehicleJourney, "JourneyPatternRef"),
+      destinationDisplay: directText(vehicleJourney, "DestinationDisplay"),
+      endShortWorkingRef: endShortWorking
+        ? directText(endShortWorking, "JourneyPatternTimingLinkRef")
+        : "",
       departureTime: directText(vehicleJourney, "DepartureTime"),
       departureSeconds: parseClockSeconds(
         directText(vehicleJourney, "DepartureTime")
@@ -1926,6 +1973,41 @@ function parseVehicleJourneys(xml, organisations = new Map()) {
       overrides: parseVehicleJourneyOverrides(vehicleJourney)
     };
   });
+}
+
+function detectTxcProducer(xml) {
+  const root = xml.documentElement;
+  const dataSource = root?.getAttribute("DataSource") || "";
+  const comments = Array.from(xml.childNodes)
+    .filter(node => node.nodeType === Node.COMMENT_NODE)
+    .map(node => node.nodeValue || "")
+    .join(" ");
+  const evidence = `${dataSource} ${comments}`.trim();
+
+  if (/gtfs2txc|gtfs-tool/i.test(dataSource)) {
+    return {
+      key: "remix",
+      label: "Remix GTFS-to-TXC converter",
+      evidence: dataSource,
+      dwellRule: "endpoint"
+    };
+  }
+
+  if (/omnibus/i.test(evidence)) {
+    return {
+      key: "omnibus",
+      label: "Omnibus TransXChange Exporter",
+      evidence: comments.trim() || dataSource,
+      dwellRule: "value"
+    };
+  }
+
+  return {
+    key: "unknown",
+    label: dataSource || "Not identified",
+    evidence: dataSource,
+    dwellRule: "value"
+  };
 }
 
 function buildPattern(sectionRefs, sections, stopMap, warnings) {
@@ -2003,6 +2085,7 @@ function buildPattern(sectionRefs, sections, stopMap, warnings) {
 
 function parseServicesFromDocument(documentRecord) {
   const xml = documentRecord.xml;
+  const producer = detectTxcProducer(xml);
   const operators = parseOperators(xml);
   const stops = parseStops(xml);
   const sections = parseJourneyPatternSections(xml);
@@ -2014,6 +2097,7 @@ function parseServicesFromDocument(documentRecord) {
 
   serviceElements.forEach((serviceElement, serviceIndex) => {
     const warnings = [];
+    const sourceGaps = [];
     const code = directText(serviceElement, "ServiceCode");
 
     if (!code) {
@@ -2053,6 +2137,12 @@ function parseServicesFromDocument(documentRecord) {
     const publishedDestination = standardService
       ? directText(standardService, "Destination")
       : "";
+    const viasContainer = standardService
+      ? directChild(standardService, "Vias")
+      : null;
+    const publishedVias = viasContainer
+      ? directChildren(viasContainer, "Via").map(nodeText).filter(Boolean)
+      : [];
 
     if (standardService) {
       directChildren(standardService, "JourneyPattern").forEach(
@@ -2070,8 +2160,18 @@ function parseServicesFromDocument(documentRecord) {
 
           const built = buildPattern(refs, sections, stops, warnings);
 
+          built.links.forEach((link, linkIndex) => {
+            if (link.runTime === null) {
+              sourceGaps.push(
+                `${id}: ${link.id || `timing link ${linkIndex + 1}`} has no readable RunTime in the source TXC.`
+              );
+            }
+          });
+
           patterns.push({
             id,
+            description: directText(patternElement, "Description"),
+            privateCode: directText(patternElement, "PrivateCode"),
             destinationDisplay: directText(
               patternElement,
               "DestinationDisplay"
@@ -2111,6 +2211,7 @@ function parseServicesFromDocument(documentRecord) {
 
       if (journey.departureSeconds === null) {
         warnings.push(`${journey.code} has no readable DepartureTime.`);
+        sourceGaps.push(`${journey.code}: no readable DepartureTime in the source TXC.`);
       }
 
       if (!journey.ticketMachineJourneyCode) {
@@ -2152,6 +2253,7 @@ function parseServicesFromDocument(documentRecord) {
       id: `${documentRecord.id}::S${serviceIndex + 1}`,
       documentId: documentRecord.id,
       filename: documentRecord.name,
+      producer,
       code,
       lineName,
       description: directText(serviceElement, "Description"),
@@ -2162,8 +2264,10 @@ function parseServicesFromDocument(documentRecord) {
       patterns,
       publishedOrigin,
       publishedDestination,
+      publishedVias,
       journeys,
       timetablePeriods,
+      sourceGaps: Array.from(new Set(sourceGaps)),
       warnings: Array.from(new Set(warnings))
     });
   });
@@ -2270,7 +2374,12 @@ function journeyPatternFor(service, journey) {
 
 function journeyDirectionFor(service, journey) {
   const pattern = journeyPatternFor(service, journey);
-  return pattern?.direction || journey.direction || "unspecified";
+  return (
+    pattern?.direction ||
+    journey.direction ||
+    service.direction ||
+    "outbound"
+  ).toLowerCase();
 }
 
 function selectedTimetablePeriod(service = state.activeService) {
@@ -2347,33 +2456,20 @@ function refreshProfileOptions() {
     : firstAvailable;
 }
 
-function mostCommonDestination(service, journeys, direction) {
-  const counts = new Map();
-
-  for (const journey of journeys) {
-    const pattern = journeyPatternFor(service, journey);
-    const destination = pattern?.destinationDisplay || "";
-    if (!destination) continue;
-    counts.set(destination, (counts.get(destination) || 0) + 1);
-  }
-
-  const sorted = Array.from(counts.entries()).sort(
-    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
-  );
-
-  return sorted[0]?.[0] || "";
-}
-
-function directionLabel(service, direction, journeys) {
-  const base =
-    direction === "outbound"
+function directionLabel(service, direction) {
+  const directionName = direction === "inbound"
+    ? "Inbound"
+    : direction === "outbound"
       ? "Outbound"
-      : direction === "inbound"
-        ? "Inbound"
-        : "Direction not stated";
-
-  const destination = mostCommonDestination(service, journeys, direction);
-  return destination ? `${base} — towards ${destination}` : base;
+      : (direction || "Direction not stated");
+  const origin = service.publishedOrigin || "Origin not stated";
+  const destination = service.publishedDestination || "Destination not stated";
+  const from = direction === "inbound" ? destination : origin;
+  const to = direction === "inbound" ? origin : destination;
+  const via = service.publishedVias.length
+    ? ` via ${service.publishedVias.join(", ")}`
+    : "";
+  return `${directionName} — ${from} → ${to}${via}`;
 }
 
 function refreshPatternOptions() {
@@ -2394,16 +2490,9 @@ function refreshPatternOptions() {
   els.patternSelect.innerHTML = "";
 
   for (const direction of directions) {
-    const directionJourneys = dayJourneys.filter(
-      journey => journeyDirectionFor(service, journey) === direction
-    );
     const option = document.createElement("option");
     option.value = direction;
-    option.textContent = directionLabel(
-      service,
-      direction,
-      directionJourneys
-    );
+    option.textContent = directionLabel(service, direction);
     els.patternSelect.appendChild(option);
   }
 
@@ -2418,6 +2507,37 @@ function patternDisplayName(pattern, index) {
   const last = pattern.stops[pattern.stops.length - 1]?.name || "Unknown end";
   return `${pattern.id}: ${first} → ${last}` +
     (pattern.destinationDisplay ? ` — ${pattern.destinationDisplay}` : "");
+}
+
+function remixPatternLetter(service, journeys) {
+  if (service.producer?.key !== "remix" || !journeys.length) return "";
+
+  const letters = new Set();
+  for (const journey of journeys) {
+    const match = journey.code.match(/-([A-Z])-(?:IB|OB)-\d{4}(?:-|$)/i);
+    if (!match) return "";
+    letters.add(match[1].toUpperCase());
+  }
+  return letters.size === 1 ? Array.from(letters)[0] : "";
+}
+
+function friendlyPatternDetails(service, pattern, journeys) {
+  const first = pattern.stops[0]?.name || "Unknown start";
+  const finalStops = Array.from(new Set(journeys.map(journey =>
+    journeyFinalStop(pattern, journey)?.name
+  ).filter(Boolean)));
+  const last = finalStops.length === 1
+    ? finalStops[0]
+    : (pattern.stops[pattern.stops.length - 1]?.name || "Unknown end");
+  const letter = remixPatternLetter(service, journeys);
+  const suppliedName = pattern.description || pattern.privateCode || "";
+
+  return {
+    title: suppliedName || `${first} → ${last}`,
+    endpoints: `${first} → ${last}`,
+    sourcePattern: letter ? `Remix pattern ${letter}` : "",
+    technicalReference: `TXC reference ${pattern.id}`
+  };
 }
 
 function legacyRefreshPatternOptions() {
@@ -2453,10 +2573,15 @@ function matchingJourneys(pattern) {
 function dwellAfterLink(pattern, journey, linkIndex) {
   const link = pattern.links[linkIndex];
   const currentOverride = journey.overrides.get(link.id);
+  const replaceEndpoint =
+    state.activeService?.producer?.dwellRule === "endpoint";
   const toWait =
-    currentOverride?.toWait !== null &&
-    currentOverride?.toWait !== undefined
-      ? currentOverride.toWait
+    replaceEndpoint && currentOverride?.hasTo
+      ? (currentOverride.hasToWait && Number.isFinite(currentOverride.toWait)
+          ? currentOverride.toWait
+          : 0)
+      : currentOverride?.hasToWait
+      ? (Number.isFinite(currentOverride.toWait) ? currentOverride.toWait : 0)
       : link.to.waitTime;
 
   if (toWait) return toWait;
@@ -2466,38 +2591,82 @@ function dwellAfterLink(pattern, journey, linkIndex) {
 
   const nextOverride = journey.overrides.get(nextLink.id);
   const fromWait =
-    nextOverride?.fromWait !== null &&
-    nextOverride?.fromWait !== undefined
-      ? nextOverride.fromWait
+    replaceEndpoint && nextOverride?.hasFrom
+      ? (nextOverride.hasFromWait && Number.isFinite(nextOverride.fromWait)
+          ? nextOverride.fromWait
+          : 0)
+      : nextOverride?.hasFromWait
+      ? (Number.isFinite(nextOverride.fromWait) ? nextOverride.fromWait : 0)
       : nextLink.from.waitTime;
 
   return fromWait || 0;
 }
 
-function journeyTimes(pattern, journey) {
+function journeyStopTimes(pattern, journey) {
   if (journey.departureSeconds === null) return [];
 
-  const times = [journey.departureSeconds];
+  const times = [{
+    arrival: null,
+    departure: journey.departureSeconds,
+    dwell: 0
+  }];
   let currentDeparture = journey.departureSeconds;
 
-  for (let index = 0; index < pattern.links.length; index++) {
-    const link = pattern.links[index];
+  const endLinkIndex = journey.endShortWorkingRef
+    ? pattern.links.findIndex(link => link.id === journey.endShortWorkingRef)
+    : -1;
+  const operatedLinks = endLinkIndex >= 0
+    ? pattern.links.slice(0, endLinkIndex + 1)
+    : pattern.links;
+
+  for (let index = 0; index < operatedLinks.length; index++) {
+    const link = operatedLinks[index];
     const override = journey.overrides.get(link.id);
     const runTime =
-      override?.runTime !== null && override?.runTime !== undefined
+      override?.hasRunTime
         ? override.runTime
         : link.runTime;
 
-    const arrival = currentDeparture + (runTime || 0);
-    const finalLink = index === pattern.links.length - 1;
-    const dwell = finalLink ? 0 : dwellAfterLink(pattern, journey, index);
-    const displayedTime = arrival + dwell;
+    const arrival =
+      Number.isFinite(currentDeparture) && Number.isFinite(runTime)
+        ? currentDeparture + runTime
+        : null;
+    const finalLink = index === operatedLinks.length - 1;
+    const dwell = finalLink || arrival === null
+      ? 0
+      : dwellAfterLink(pattern, journey, index);
+    const departure = finalLink || arrival === null
+      ? null
+      : arrival + dwell;
 
-    times.push(displayedTime);
-    currentDeparture = displayedTime;
+    times.push({ arrival, departure, dwell });
+    currentDeparture = departure ?? arrival;
   }
 
   return times;
+}
+
+function journeyDestination(pattern, journey) {
+  return journey.destinationDisplay || pattern?.destinationDisplay || "";
+}
+
+function journeyFinalStop(pattern, journey) {
+  if (!pattern) return null;
+  if (!journey.endShortWorkingRef) {
+    return pattern.stops[pattern.stops.length - 1] || null;
+  }
+  const endLinkIndex = pattern.links.findIndex(
+    link => link.id === journey.endShortWorkingRef
+  );
+  return endLinkIndex >= 0
+    ? pattern.stops[endLinkIndex + 1] || null
+    : pattern.stops[pattern.stops.length - 1] || null;
+}
+
+function journeyTimes(pattern, journey) {
+  return journeyStopTimes(pattern, journey).map(stopTime =>
+    stopTime.departure ?? stopTime.arrival
+  );
 }
 
 function journeyCodeLegend(journeys) {
@@ -2593,6 +2762,18 @@ function renderSummary(service) {
       </div>
     `
     : "";
+  const producerWarningHtml = service.producer.key === "unknown"
+    ? `
+      <div class="warnings">
+        <strong>TXC producer not identified</strong>
+        <ul><li>The Viewer is using value-by-value dwell inheritance. Confirm the source system before relying on journey-specific empty From or To overrides.</li></ul>
+      </div>
+    `
+    : "";
+  const sourceGapHtml = service.sourceGaps.length
+    ? `<details class="warnings source-gaps"><summary>Source timing gaps · ${service.sourceGaps.length}</summary>`+
+      `<ul>${service.sourceGaps.map(gap => `<li>${escapeHtml(gap)}</li>`).join("")}</ul></details>`
+    : "";
 
   els.serviceSummary.innerHTML = `
     <div class="service-title">
@@ -2633,6 +2814,10 @@ function renderSummary(service) {
         <div class="summary-value">${escapeHtml(service.filename)}</div>
       </div>
       <div class="summary-item">
+        <div class="summary-label">TXC data feed</div>
+        <div class="summary-value">${escapeHtml(service.producer.label)}</div>
+      </div>
+      <div class="summary-item">
         <div class="summary-label">Journey patterns</div>
         <div class="summary-value">${service.patterns.length}</div>
       </div>
@@ -2652,8 +2837,14 @@ function renderSummary(service) {
         <div class="summary-label">TXC version</div>
         <div class="summary-value">Read from source XML</div>
       </div>
+      <div class="summary-item">
+        <div class="summary-label">Source timing gaps</div>
+        <div class="summary-value">${service.sourceGaps.length}</div>
+      </div>
     </div>
     ${calendarWarningHtml}
+    ${producerWarningHtml}
+    ${sourceGapHtml}
     ${warningHtml}
   `;
 
@@ -2983,6 +3174,47 @@ function combinedJourneyTimes(
   });
 
   return output;
+}
+
+function combinedJourneyStopTimes(combined, pattern, journey) {
+  const output = Array(combined.rows.length).fill(null);
+  const times = journeyStopTimes(pattern, journey);
+  const positions = combined.alignmentByPattern.get(pattern.id) || [];
+
+  positions.forEach((masterPosition, index) => {
+    output[masterPosition] = times[index] === undefined ? null : times[index];
+  });
+
+  return output;
+}
+
+function expandedTimetableRows(visibleIndexes, tripTimes) {
+  const rows = [];
+
+  for (const item of visibleIndexes) {
+    const hasDwell = tripTimes.some(({ stopTimes }) => {
+      const timing = stopTimes[item.index];
+      return timing && Number.isFinite(timing.arrival) &&
+        Number.isFinite(timing.departure) &&
+        timing.departure > timing.arrival;
+    });
+
+    if (hasDwell) {
+      rows.push({ ...item, timeType: "arrival", timeLabel: "arr" });
+      rows.push({ ...item, timeType: "departure", timeLabel: "dep" });
+    } else {
+      rows.push({ ...item, timeType: "display", timeLabel: "" });
+    }
+  }
+
+  return rows;
+}
+
+function timetableCellTime(timing, timeType) {
+  if (!timing) return null;
+  if (timeType === "arrival") return timing.arrival;
+  if (timeType === "departure") return timing.departure;
+  return timing.departure ?? timing.arrival;
 }
 
 function schoolDisplayBadge(condition) {
@@ -3350,6 +3582,11 @@ function renderDynamicDestinationPanel(service, journeys) {
   if (!groups.length) return "";
 
   const groupHtml = groups.map((group, groupIndex) => {
+    const friendly = friendlyPatternDetails(
+      service,
+      group.pattern,
+      group.journeys
+    );
     const journeyChips = group.journeys.map(journey => {
       const code =
         journey.ticketMachineJourneyCode ||
@@ -3390,16 +3627,14 @@ function renderDynamicDestinationPanel(service, journeys) {
       </tr>
     `).join("");
 
-    const first = group.pattern.stops[0]?.name || "Unknown start";
-    const last = group.pattern.stops[group.pattern.stops.length - 1]?.name ||
-      "Unknown end";
-
     return `
       <details class="dynamic-destination-group">
         <summary class="dynamic-destination-group-header">
           <span class="dynamic-destination-group-title">
-            ${escapeHtml(group.pattern.id)}: ${escapeHtml(first)} →
-            ${escapeHtml(last)} — applies to ${group.journeys.length} journey(s)
+            ${escapeHtml(friendly.title)}
+            ${friendly.sourcePattern ? ` — ${escapeHtml(friendly.sourcePattern)}` : ""}
+            · ${escapeHtml(friendly.technicalReference)}
+            · ${group.journeys.length} journey(s)
           </span>
           <span class="dynamic-expand-hint" aria-hidden="true"></span>
         </summary>
@@ -3436,19 +3671,37 @@ function renderDynamicDestinationPanel(service, journeys) {
   `;
 }
 
-function renderDirectionDetails(service, patterns) {
-  const publishedOrigin = service.publishedOrigin || "Not supplied";
-  const publishedDestination = service.publishedDestination || "Not supplied";
+function renderDirectionDetails(service, patterns, journeys, direction) {
+  const publishedDirection = directionLabel(service, direction);
 
-  const patternItems = patterns.map(pattern => {
+  const journeyGroups = new Map();
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    if (!pattern) continue;
     const first = pattern.stops[0]?.name || "Unknown start";
-    const last = pattern.stops[pattern.stops.length - 1]?.name || "Unknown end";
-    const headsign = pattern.destinationDisplay || "Not supplied";
+    const last = journeyFinalStop(pattern, journey)?.name || "Unknown end";
+    const headsign = journeyDestination(pattern, journey) || "Not supplied";
+    const key = `${pattern.id}\u0000${first}\u0000${last}\u0000${headsign}`;
+    if (!journeyGroups.has(key)) {
+      journeyGroups.set(key, { pattern, first, last, headsign });
+    }
+  }
+
+  const patternItems = Array.from(journeyGroups.values()).map(group => {
+    const patternJourneys = journeys.filter(
+      journey => journey.journeyPatternRef === group.pattern.id
+    );
+    const friendly = friendlyPatternDetails(
+      service,
+      group.pattern,
+      patternJourneys
+    );
     return `
       <li>
-        <strong>${escapeHtml(pattern.id)}:</strong>
-        ${escapeHtml(first)} → ${escapeHtml(last)}
-        · initial headsign: <strong>${escapeHtml(headsign)}</strong>
+        <strong>${escapeHtml(friendly.title)}</strong>
+        ${friendly.sourcePattern ? `· ${escapeHtml(friendly.sourcePattern)}` : ""}
+        · initial headsign: <strong>${escapeHtml(group.headsign)}</strong>
+        · ${escapeHtml(friendly.technicalReference)}
       </li>
     `;
   }).join("");
@@ -3456,8 +3709,8 @@ function renderDirectionDetails(service, patterns) {
   return `
     <div class="direction-details">
       <div>
-        <strong>Published service direction:</strong>
-        ${escapeHtml(publishedOrigin)} → ${escapeHtml(publishedDestination)}
+        <strong>Published timetable direction:</strong>
+        ${escapeHtml(publishedDirection)}
       </div>
       <div><strong>Actual selected journey pattern(s):</strong></div>
       <ul class="direction-pattern-list">${patternItems}</ul>
@@ -3497,7 +3750,7 @@ function renderCombinedTimetable(service, journeys) {
       return {
         journey,
         pattern,
-        times: combinedJourneyTimes(combined, pattern, journey)
+        stopTimes: combinedJourneyStopTimes(combined, pattern, journey)
       };
     });
 
@@ -3509,6 +3762,7 @@ function renderCombinedTimetable(service, journeys) {
       item.index === 0 ||
       item.index === combined.rows.length - 1
     );
+  const displayRows = expandedTimetableRows(visibleIndexes, tripTimes);
 
   const headerCells = tripTimes.map(({ journey, pattern }) => {
     const badges = journeyHeaderBadges(
@@ -3553,18 +3807,26 @@ function renderCombinedTimetable(service, journeys) {
                 journey.departureTime.slice(0, 5)
               )}</div>`
         }
+        <div class="journey-destination" title="${escapeHtml(
+          journeyDestination(pattern, journey) || "Destination not stated"
+        )}">${escapeHtml(
+          journeyDestination(pattern, journey) || "Destination not stated"
+        )}</div>
       </th>
     `;
   }).join("");
 
-  const bodyRows = visibleIndexes.map(({ stop, index }) => {
-    const cells = tripTimes.map(({ times }) => `
+  const bodyRows = displayRows.map(({ stop, index, timeType, timeLabel }) => {
+    const cells = tripTimes.map(({ stopTimes }) => {
+      const value = timetableCellTime(stopTimes[index], timeType);
+      return `
       <td>${
-        times[index] === null || times[index] === undefined
+        value === null || value === undefined
           ? ""
-          : formatClock(times[index])
+          : formatClock(value)
       }</td>
-    `).join("");
+    `;
+    }).join("");
 
     const timing = stopIsTimingPoint(stop);
     const timingChip = timing
@@ -3580,6 +3842,7 @@ function renderCombinedTimetable(service, journeys) {
       <tr class="${timing ? "timing-point" : ""}">
         <td class="stop-column">
           <span class="stop-name">${escapeHtml(stop.name)}</span>
+          ${timeLabel ? `<span class="time-role">${escapeHtml(timeLabel)}</span>` : ""}
           ${timingChip}
           <span class="stop-code">${escapeHtml(stop.ref || "")}</span>
         </td>
@@ -3660,12 +3923,7 @@ function renderCombinedTimetable(service, journeys) {
     `
     : "";
 
-  const directionText =
-    direction === "outbound"
-      ? "Outbound"
-      : direction === "inbound"
-        ? "Inbound"
-        : "Direction not stated";
+  const directionText = directionLabel(service, direction);
 
   return `
     <article class="pattern-card">
@@ -3681,7 +3939,7 @@ function renderCombinedTimetable(service, journeys) {
         </div>
       </div>
 
-      ${renderDirectionDetails(service, patterns)}
+      ${renderDirectionDetails(service, patterns, journeys, direction)}
 
       <div class="table-wrap">
         <table class="timetable">
@@ -3740,7 +3998,7 @@ function renderActiveService() {
   els.status.textContent =
     `Showing ${periodLabel(selectedTimetablePeriod(service), false)}, ` +
     `${dayTypeLabel(selectedDayType)}, ` +
-    `${selectedDirection || "direction not stated"}: ` +
+    `${directionLabel(service, selectedDirection)}: ` +
     `${journeys.length} journey column(s) in one combined timetable.`;
 }
 
@@ -3821,11 +4079,13 @@ function excelDirectionLabel(value) {
   return "Direction not stated";
 }
 
-function actualDirectionLabel(patterns) {
+function actualDirectionLabel(service, journeys) {
   const endpoints = [];
-  for (const pattern of patterns) {
+  for (const journey of journeys) {
+    const pattern = journeyPatternFor(service, journey);
+    if (!pattern) continue;
     const first = pattern.stops[0]?.name;
-    const last = pattern.stops[pattern.stops.length - 1]?.name;
+    const last = journeyFinalStop(pattern, journey)?.name;
     if (first || last) endpoints.push(`${first || "Not stated"} → ${last || "Not stated"}`);
   }
   const unique = Array.from(new Set(endpoints));
@@ -3851,11 +4111,15 @@ function timetableRowsForDirection(service, dayType, direction) {
   const combined = buildCombinedStopRows(patterns);
   const tripTimes = journeys.map(journey => {
     const pattern = journeyPatternFor(service, journey);
-    return { journey, pattern, times: combinedJourneyTimes(combined, pattern, journey) };
+    return {
+      journey,
+      pattern,
+      stopTimes: combinedJourneyStopTimes(combined, pattern, journey)
+    };
   });
 
   const rows = [
-    { style: 2, values: [`${excelDirectionLabel(direction)} — ${actualDirectionLabel(patterns)}`] },
+    { style: 2, values: [directionLabel(service, direction)] },
     { style: 3, values: ["", "Journey code", ...tripTimes.map(({ journey }) =>
       journey.ticketMachineJourneyCode || journey.departureTime.slice(0, 5))] },
     { style: 4, values: ["", "Scheduled departure", ...tripTimes.map(({ journey }) =>
@@ -3864,17 +4128,38 @@ function timetableRowsForDirection(service, dayType, direction) {
       compactOperatingDays(journey.profile))] },
     { style: 4, values: ["", "Trip type", ...tripTimes.map(({ journey }) =>
       compactTripType(journey.profile, dayType))] },
-    { style: 4, values: ["", "Journey pattern", ...tripTimes.map(({ pattern }) => pattern?.id || "")] },
+    { style: 4, values: ["", "Journey pattern", ...tripTimes.map(({ pattern }) => {
+      if (!pattern) return "";
+      const patternJourneys = journeys.filter(
+        journey => journey.journeyPatternRef === pattern.id
+      );
+      const friendly = friendlyPatternDetails(service, pattern, patternJourneys);
+      return `${friendly.title}${friendly.sourcePattern ? ` — ${friendly.sourcePattern}` : ""} (${pattern.id})`;
+    })] },
+    { style: 4, values: ["", "Destination", ...tripTimes.map(({ journey, pattern }) =>
+      journeyDestination(pattern, journey) || "Not stated")] },
     { style: 3, values: ["Stop code", "Stop name", ...tripTimes.map(() => "Time")] }
   ];
 
-  combined.rows.forEach((stop, index) => {
-    if (els.stopMode.value === "timing" && !stopIsTimingPoint(stop) &&
-        index !== 0 && index !== combined.rows.length - 1) return;
+  const visibleIndexes = combined.rows
+    .map((stop, index) => ({ stop, index }))
+    .filter(({ stop, index }) =>
+      els.stopMode.value === "all" || stopIsTimingPoint(stop) ||
+      index === 0 || index === combined.rows.length - 1
+    );
+  const displayRows = expandedTimetableRows(visibleIndexes, tripTimes);
+
+  displayRows.forEach(({ stop, index, timeType, timeLabel }, rowIndex) => {
     rows.push({
-      style: index % 2 ? 6 : 5,
-      values: [stop.ref, stop.name, ...tripTimes.map(({ times }) =>
-        times[index] === null || times[index] === undefined ? "" : plainClock(times[index]))]
+      style: rowIndex % 2 ? 6 : 5,
+      values: [
+        stop.ref,
+        timeLabel ? `${stop.name} (${timeLabel})` : stop.name,
+        ...tripTimes.map(({ stopTimes }) => {
+          const value = timetableCellTime(stopTimes[index], timeType);
+          return value === null || value === undefined ? "" : plainClock(value);
+        })
+      ]
     });
   });
   rows.push({ style: 0, values: [] }, { style: 0, values: [] });
@@ -3899,10 +4184,11 @@ function workbookSheets(service) {
         { style: 4, values: ["Operator", operator] },
         { style: 4, values: ["NOC code", service.operator.nationalCode] },
         { style: 4, values: ["Service code", service.code] },
-        { style: 4, values: ["Published direction", `${service.publishedOrigin || "Not stated"} → ${service.publishedDestination || "Not stated"}`] },
+        { style: 4, values: ["Published timetable", `${service.publishedOrigin || "Not stated"} → ${service.publishedDestination || "Not stated"}${service.publishedVias.length ? ` via ${service.publishedVias.join(", ")}` : ""}`] },
         { style: 4, values: ["Timetable operating dates", `${period?.start || service.startDate || "Not stated"} → ${period?.end || service.endDate || "Open"}`] },
         { style: 4, values: ["Day operation", day.label] },
         { style: 4, values: ["Source file", service.filename] },
+        { style: 4, values: ["TXC data feed", service.producer.label] },
         { style: 0, values: [] }
       ];
       for (const direction of directions) rows.push(...timetableRowsForDirection(service, day.key, direction));

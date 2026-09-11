@@ -69,7 +69,7 @@
       margin-top: 6px;
       color: #687785;
     }
-    select, input[type="date"], input[type="file"] {
+    select, input[type="date"] {
       width: 100%;
       min-height: 40px;
       border: 1px solid #aeb8c2;
@@ -77,6 +77,51 @@
       padding: 8px 10px;
       background: white;
       font: inherit;
+    }
+    .file-picker-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+    .file-picker-options input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+    .file-picker-button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 1px solid #7d8c99;
+      border-radius: 7px;
+      background: white;
+      color: #18202a;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .file-picker-button:hover { background: #f1f6fa; }
+    .file-picker-button:focus-within {
+      outline: 3px solid rgba(0, 90, 156, .2);
+      outline-offset: 2px;
+    }
+    .selection-summary {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f7f9fa;
+      border: 1px solid #d8dee5;
+      color: #52616e;
+    }
+    .selection-summary.has-files {
+      background: #eef9f1;
+      border-color: #a9d5b6;
+      color: #176b35;
+      font-weight: 650;
     }
     .hidden { display: none !important; }
     .check-row {
@@ -234,7 +279,7 @@
 </svg></div>
       <div>
         <h1>TXC Date Tool</h1>
-        <p>Offline date processing, batch changes and output filename management.</p>
+        <p>Offline date processing, batch changes and output filename management. · Suite build 2026.09.10.1</p>
       </div>
     </div>
   </header>
@@ -263,20 +308,36 @@
     </fieldset>
 
     <fieldset>
-      <legend id="folderLegend">2. Select the two folders</legend>
+      <legend id="folderLegend">2. Select the two sets of timetable files</legend>
       <div class="grid">
         <div class="field">
-          <label id="primaryFolderLabel" for="primaryFiles">Old/current XML folder</label>
-          <input id="primaryFiles" type="file" accept=".xml,text/xml,application/xml"
-                 multiple webkitdirectory directory>
-          <small id="primaryFolderHelp">Contains the timetable files that are currently active.</small>
+          <label id="primaryFolderLabel">Old/current timetable files</label>
+          <div class="file-picker-options">
+            <label class="file-picker-button">Select a whole folder
+              <input id="primaryFolderFiles" type="file" accept=".xml,text/xml,application/xml"
+                     multiple webkitdirectory directory>
+            </label>
+            <label class="file-picker-button">Select individual XML files
+              <input id="primaryIndividualFiles" type="file" accept=".xml,text/xml,application/xml" multiple>
+            </label>
+          </div>
+          <div id="primarySelectionSummary" class="selection-summary">Nothing selected yet.</div>
+          <small id="primaryFolderHelp">Choose either the complete folder or selected XML files that are currently active.</small>
         </div>
 
         <div id="secondaryFolderField" class="field">
-          <label for="secondaryFiles">New Remix XML folder</label>
-          <input id="secondaryFiles" type="file" accept=".xml,text/xml,application/xml"
-                 multiple webkitdirectory directory>
-          <small>Contains the newly exported replacement timetable files.</small>
+          <label>New Remix timetable files</label>
+          <div class="file-picker-options">
+            <label class="file-picker-button">Select a whole folder
+              <input id="secondaryFolderFiles" type="file" accept=".xml,text/xml,application/xml"
+                     multiple webkitdirectory directory>
+            </label>
+            <label class="file-picker-button">Select individual XML files
+              <input id="secondaryIndividualFiles" type="file" accept=".xml,text/xml,application/xml" multiple>
+            </label>
+          </div>
+          <div id="secondarySelectionSummary" class="selection-summary">Nothing selected yet.</div>
+          <small>Choose either the complete folder or selected newly exported replacement XML files.</small>
         </div>
       </div>
     </fieldset>
@@ -310,6 +371,17 @@
           </small>
         </div>
       </div>
+      <div id="useOldFilenameRow" class="check-row">
+        <input id="useOldFilenameForNew" type="checkbox" checked>
+        <div>
+          <label for="useOldFilenameForNew">Use each matched old filename as the template for its new replacement file</label>
+          <small>
+            Keeps the operator and route wording from the correctly named old file, replaces its old date with the new StartDate,
+            and retains the ServiceCode at the end. Example:
+            <code>GWCO_S5-Llanberis-Pen-y-Pass_20260913_GCAS005.xml</code>.
+          </small>
+        </div>
+      </div>
     </fieldset>
 
     <div class="actions">
@@ -318,7 +390,7 @@
       <button id="clearButton">Clear</button>
     </div>
 
-    <div id="status" class="status">Choose a mode, folders and date, then scan.</div>
+    <div id="status" class="status">Choose a mode, select the required folders or files, enter the date, then scan.</div>
     <div id="message"></div>
 
     <div id="downloadPanel" class="download-panel">
@@ -371,9 +443,13 @@ const els = {
   folderLegend: document.getElementById("folderLegend"),
   primaryFolderLabel: document.getElementById("primaryFolderLabel"),
   primaryFolderHelp: document.getElementById("primaryFolderHelp"),
-  primaryFiles: document.getElementById("primaryFiles"),
+  primaryFolderFiles: document.getElementById("primaryFolderFiles"),
+  primaryIndividualFiles: document.getElementById("primaryIndividualFiles"),
+  primarySelectionSummary: document.getElementById("primarySelectionSummary"),
   secondaryFolderField: document.getElementById("secondaryFolderField"),
-  secondaryFiles: document.getElementById("secondaryFiles"),
+  secondaryFolderFiles: document.getElementById("secondaryFolderFiles"),
+  secondaryIndividualFiles: document.getElementById("secondaryIndividualFiles"),
+  secondarySelectionSummary: document.getElementById("secondarySelectionSummary"),
   startDateField: document.getElementById("startDateField"),
   startDateLabel: document.getElementById("startDateLabel"),
   startDateHelp: document.getElementById("startDateHelp"),
@@ -383,6 +459,8 @@ const els = {
   endDateHelp: document.getElementById("endDateHelp"),
   endDate: document.getElementById("endDate"),
   renameFiles: document.getElementById("renameFiles"),
+  useOldFilenameRow: document.getElementById("useOldFilenameRow"),
+  useOldFilenameForNew: document.getElementById("useOldFilenameForNew"),
   scanButton: document.getElementById("scanButton"),
   processButton: document.getElementById("processButton"),
   clearButton: document.getElementById("clearButton"),
@@ -683,11 +761,41 @@ function validateDateInputs() {
   };
 }
 
+function selectedFiles(side) {
+  const folderInput = side === "primary" ? els.primaryFolderFiles : els.secondaryFolderFiles;
+  const individualInput = side === "primary" ? els.primaryIndividualFiles : els.secondaryIndividualFiles;
+  return folderInput.files && folderInput.files.length
+    ? folderInput.files
+    : individualInput.files;
+}
+
+function updateSelectionSummary(side) {
+  const files = Array.from(selectedFiles(side) || []).filter(file =>
+    file.name.toLowerCase().endsWith(".xml")
+  );
+  const folderInput = side === "primary" ? els.primaryFolderFiles : els.secondaryFolderFiles;
+  const summary = side === "primary" ? els.primarySelectionSummary : els.secondarySelectionSummary;
+  const source = folderInput.files && folderInput.files.length ? "folder" : "individual selection";
+  summary.textContent = files.length
+    ? `${files.length} XML file${files.length === 1 ? "" : "s"} selected from ${source}.`
+    : "Nothing selected yet.";
+  summary.classList.toggle("has-files", files.length > 0);
+}
+
+function handleFileSelection(side, source) {
+  const other = side === "primary"
+    ? (source === "folder" ? els.primaryIndividualFiles : els.primaryFolderFiles)
+    : (source === "folder" ? els.secondaryIndividualFiles : els.secondaryFolderFiles);
+  other.value = "";
+  updateSelectionSummary(side);
+  resetScanState("Inputs changed. Run Scan and preview again.");
+}
+
 function currentSignature() {
-  const primary = Array.from(els.primaryFiles.files || [])
+  const primary = Array.from(selectedFiles("primary") || [])
     .map(file => `${file.name}:${file.size}:${file.lastModified}`)
     .join("|");
-  const secondary = Array.from(els.secondaryFiles.files || [])
+  const secondary = Array.from(selectedFiles("secondary") || [])
     .map(file => `${file.name}:${file.size}:${file.lastModified}`)
     .join("|");
 
@@ -697,7 +805,8 @@ function currentSignature() {
     secondary,
     els.startDate.value,
     els.endDate.value,
-    els.renameFiles.checked ? "rename" : "keep"
+    els.renameFiles.checked ? "rename" : "keep",
+    els.useOldFilenameForNew.checked ? "old-name-template" : "new-name-template"
   ].join("|||");
 }
 
@@ -768,6 +877,87 @@ function plannedDescription(row, dates) {
   return "";
 }
 
+function resultingSyncPeriod(recordOrRecords, dates, role) {
+  if (Array.isArray(recordOrRecords)) {
+    if (recordOrRecords.length !== 1) return "";
+    recordOrRecords = recordOrRecords[0];
+  }
+  if (!recordOrRecords) return "";
+
+  const start = role === "old"
+    ? (recordOrRecords.startDate || "missing")
+    : dates.start;
+  const end = role === "old"
+    ? dates.oldEnd
+    : (dates.end || recordOrRecords.endDate || "open/no EndDate");
+  return `${start} → ${end}`;
+}
+
+function oldTemplateOutputPath(oldPath, serviceCode, startDate) {
+  const parts = splitFilename(oldPath);
+  const compactDate = String(startDate || "").replaceAll("-", "") || "NO_START";
+  const escapedCode = String(serviceCode || "")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let stem = parts.stem;
+
+  if (escapedCode) {
+    stem = stem.replace(new RegExp(`(?:[_-])?${escapedCode}$`, "i"), "");
+  }
+
+  const datedSuffix = stem.match(/^(.*?)(?:[_-])(\d{8})$/);
+  if (datedSuffix) stem = datedSuffix[1];
+  stem = stem.replace(/(?:[_-])\d+$/, "");
+  stem = stem.replace(/[_-]+$/, "");
+
+  const prefix = sanitizeFilenamePart(stem);
+  const code = sanitizeFilenamePart(serviceCode || "SERVICE");
+  return safeZipPath(
+    `${parts.directory}${prefix}_${sanitizeFilenamePart(compactDate)}_${code}${parts.extension || ".xml"}`
+  );
+}
+
+function plannedNewFilename(row, dates) {
+  if (row.oldRecords.length !== 1 || row.newRecords.length !== 1) return "";
+  const basename = path => path.replaceAll("\\", "/").split("/").pop();
+  return basename(plannedNewOutputPath(row, dates));
+}
+
+function plannedNewOutputPath(row, dates) {
+  if (row.oldRecords.length !== 1 || row.newRecords.length !== 1) return "";
+  if (!els.renameFiles.checked) return safeZipPath(row.newRecords[0].displayPath);
+  if (els.useOldFilenameForNew.checked) {
+    return oldTemplateOutputPath(
+      row.oldRecords[0].displayPath,
+      row.code,
+      dates.start
+    );
+  }
+  return datedOutputPath(
+    row.newRecords[0].displayPath,
+    dates.start,
+    dates.end || row.newRecords[0].endDate
+  );
+}
+
+function flagOutputFilenameCollisions(rows, dates) {
+  const paths = new Map();
+  rows.filter(row => row.processable).forEach(row => {
+    const path = plannedNewOutputPath(row, dates).toLowerCase();
+    if (!path) return;
+    const documents = paths.get(path) || new Set();
+    documents.add(row.newRecords[0].documentId);
+    paths.set(path, documents);
+  });
+  rows.forEach(row => {
+    if (!row.processable) return;
+    const path = plannedNewOutputPath(row, dates).toLowerCase();
+    if ((paths.get(path)?.size || 0) > 1) {
+      row.status = "New output filename collision";
+      row.processable = false;
+    }
+  });
+}
+
 function renderPreview(rows) {
   const mode = els.mode.value;
   els.previewHead.innerHTML = "";
@@ -775,7 +965,17 @@ function renderPreview(rows) {
 
   const headerRow = els.previewHead.insertRow();
   const headers = mode === "sync"
-    ? ["Status", "ServiceCode", "Old file", "Old current period", "New file", "New current period"]
+    ? [
+        "Status",
+        "ServiceCode",
+        "Old file",
+        "Existing old period",
+        "Old period after processing",
+        "New file",
+        "Existing new period",
+        "New period after processing",
+        "New output filename"
+      ]
     : ["Status", "ServiceCode", "File", "Current period", "Planned change"];
 
   for (const heading of headers) {
@@ -807,8 +1007,11 @@ function renderPreview(rows) {
           item.code,
           fileDescription(item.oldRecords),
           periodDescription(item.oldRecords),
+          resultingSyncPeriod(item.oldRecords, dates, "old"),
           fileDescription(item.newRecords),
-          periodDescription(item.newRecords)
+          periodDescription(item.newRecords),
+          resultingSyncPeriod(item.newRecords, dates, "new"),
+          plannedNewFilename(item, dates)
         ]
       : [
           item.status,
@@ -831,7 +1034,7 @@ function renderPreview(rows) {
 async function loadDocuments(fileList, side) {
   const files = Array.from(fileList || []).filter(isXmlFile);
   if (files.length === 0) {
-    throw new Error("No XML files were selected in the required folder.");
+    throw new Error("No XML files were selected. Choose a whole folder or select individual XML files.");
   }
 
   const records = await Promise.all(
@@ -846,12 +1049,13 @@ function updateModeUi() {
 
   if (mode === "sync") {
     els.modeDescription.textContent =
-      "Match the same ServiceCode between an old folder and a new folder.";
-    els.folderLegend.textContent = "2. Select the two folders";
-    els.primaryFolderLabel.textContent = "Old/current XML folder";
+      "Match the same ServiceCode between old/current files and new replacement files.";
+    els.folderLegend.textContent = "2. Select the two sets of timetable files";
+    els.primaryFolderLabel.textContent = "Old/current timetable files";
     els.primaryFolderHelp.textContent =
-      "Contains the timetable files that are currently active.";
+      "Choose either the complete folder or selected XML files that are currently active.";
     els.secondaryFolderField.classList.remove("hidden");
+    els.useOldFilenameRow.classList.remove("hidden");
 
     els.startDateField.classList.remove("hidden");
     els.startDateLabel.textContent = "First day of the new timetable";
@@ -864,12 +1068,13 @@ function updateModeUi() {
       "Leave blank to keep the EndDate already present in the new XML.";
   } else if (mode === "end") {
     els.modeDescription.textContent =
-      "Apply one EndDate to every safe Service record in a single folder.";
-    els.folderLegend.textContent = "2. Select the folder";
+      "Apply one EndDate to every safe Service record in the selected folder or individual files.";
+    els.folderLegend.textContent = "2. Select the timetable files";
     els.primaryFolderLabel.textContent = "XML files to end-date";
     els.primaryFolderHelp.textContent =
-      "Every safe Service record in this folder will receive the chosen EndDate.";
+      "Every safe Service record selected will receive the chosen EndDate.";
     els.secondaryFolderField.classList.add("hidden");
+    els.useOldFilenameRow.classList.add("hidden");
 
     els.startDateField.classList.add("hidden");
     els.endDateField.classList.remove("hidden");
@@ -878,12 +1083,13 @@ function updateModeUi() {
       "Existing StartDate values and all other XML content remain unchanged.";
   } else {
     els.modeDescription.textContent =
-      "Apply one StartDate to every safe Service record in a single folder.";
-    els.folderLegend.textContent = "2. Select the folder";
+      "Apply one StartDate to every safe Service record in the selected folder or individual files.";
+    els.folderLegend.textContent = "2. Select the timetable files";
     els.primaryFolderLabel.textContent = "XML files to start-date";
     els.primaryFolderHelp.textContent =
-      "Every safe Service record in this folder will receive the chosen StartDate.";
+      "Every safe Service record selected will receive the chosen StartDate.";
     els.secondaryFolderField.classList.add("hidden");
+    els.useOldFilenameRow.classList.add("hidden");
 
     els.startDateField.classList.remove("hidden");
     els.startDateLabel.textContent = "StartDate to apply";
@@ -896,7 +1102,7 @@ function updateModeUi() {
       "Leave blank to preserve the EndDate already present in each XML file.";
   }
 
-  resetScanState("Mode changed. Select the required folder(s), enter the date, then scan.");
+  resetScanState("Mode changed. Select the required folders or files, enter the date, then scan.");
 }
 
 async function scan() {
@@ -908,18 +1114,19 @@ async function scan() {
     els.scanButton.disabled = true;
     els.status.textContent = "Scanning XML files…";
 
-    validateDateInputs();
+    const dates = validateDateInputs();
 
-    const primaryDocuments = await loadDocuments(els.primaryFiles.files, "primary");
+    const primaryDocuments = await loadDocuments(selectedFiles("primary"), "primary");
     let secondaryDocuments = new Map();
     let rows;
 
     if (els.mode.value === "sync") {
-      secondaryDocuments = await loadDocuments(els.secondaryFiles.files, "secondary");
+      secondaryDocuments = await loadDocuments(selectedFiles("secondary"), "secondary");
       rows = buildSyncRows(
         mapRecordsByCode(primaryDocuments),
         mapRecordsByCode(secondaryDocuments)
       );
+      flagOutputFilenameCollisions(rows, dates);
     } else {
       rows = buildSingleRows(primaryDocuments);
     }
@@ -1343,6 +1550,7 @@ async function processAndDownload() {
       );
       const changedPrimary = new Set();
       const changedSecondary = new Set();
+      const newFilenameTemplates = new Map();
 
       for (const row of readyRows) {
         const oldRecord = row.oldRecords[0];
@@ -1368,6 +1576,21 @@ async function processAndDownload() {
         }
         secondaryTexts.set(newRecord.documentId, newText);
         changedSecondary.add(newRecord.documentId);
+        if (els.useOldFilenameForNew.checked) {
+          const existingTemplate = newFilenameTemplates.get(newRecord.documentId);
+          const proposedTemplate = {
+            oldPath: oldRecord.displayPath,
+            serviceCode: row.code
+          };
+          if (!existingTemplate) {
+            newFilenameTemplates.set(newRecord.documentId, proposedTemplate);
+          } else if (
+            existingTemplate.oldPath !== proposedTemplate.oldPath ||
+            existingTemplate.serviceCode !== proposedTemplate.serviceCode
+          ) {
+            newFilenameTemplates.set(newRecord.documentId, null);
+          }
+        }
 
         reportRows.push({
           mode: "sync",
@@ -1416,17 +1639,25 @@ async function processAndDownload() {
       for (const id of changedSecondary) {
         const doc = state.secondaryDocuments.get(id);
         assertWellFormed(secondaryTexts.get(id), doc.file.name);
+        const matchingReport = reportRows.find(row =>
+          row.source_role === "new" && row.file === doc.displayPath
+        );
+        const template = newFilenameTemplates.get(id);
+        const newOutputPath =
+          els.renameFiles.checked && els.useOldFilenameForNew.checked && template
+            ? oldTemplateOutputPath(
+                template.oldPath,
+                template.serviceCode,
+                matchingReport?.result_start || dates.start
+              )
+            : datedOutputPath(
+                doc.displayPath,
+                matchingReport?.result_start || "",
+                matchingReport?.result_end || ""
+              );
         entries.push({
           name: uniqueZipPath(
-            `NEW_STARTED/${datedOutputPath(
-              doc.displayPath,
-              reportRows.find(row =>
-                row.source_role === "new" && row.file === doc.displayPath
-              )?.result_start || "",
-              reportRows.find(row =>
-                row.source_role === "new" && row.file === doc.displayPath
-              )?.result_end || ""
-            )}`,
+            `NEW_STARTED/${newOutputPath}`,
             usedPaths
           ),
           bytes: encodeDocument(doc, secondaryTexts.get(id))
@@ -1547,11 +1778,16 @@ async function processAndDownload() {
 
 function clearAll() {
   clearDownload();
-  els.primaryFiles.value = "";
-  els.secondaryFiles.value = "";
+  els.primaryFolderFiles.value = "";
+  els.primaryIndividualFiles.value = "";
+  els.secondaryFolderFiles.value = "";
+  els.secondaryIndividualFiles.value = "";
+  updateSelectionSummary("primary");
+  updateSelectionSummary("secondary");
   els.startDate.value = "";
   els.endDate.value = "";
   els.renameFiles.checked = true;
+  els.useOldFilenameForNew.checked = true;
   state.rows = [];
   state.primaryDocuments = new Map();
   state.secondaryDocuments = new Map();
@@ -1561,7 +1797,7 @@ function clearAll() {
   showMessage("");
   renderPreview([]);
   els.status.textContent =
-    "Choose a mode, folders and date, then scan.";
+    "Choose a mode, select the required folders or files, enter the date, then scan.";
 }
 
 els.mode.addEventListener("change", updateModeUi);
@@ -1569,12 +1805,16 @@ els.scanButton.addEventListener("click", scan);
 els.processButton.addEventListener("click", processAndDownload);
 els.clearButton.addEventListener("click", clearAll);
 
+els.primaryFolderFiles.addEventListener("change", () => handleFileSelection("primary", "folder"));
+els.primaryIndividualFiles.addEventListener("change", () => handleFileSelection("primary", "individual"));
+els.secondaryFolderFiles.addEventListener("change", () => handleFileSelection("secondary", "folder"));
+els.secondaryIndividualFiles.addEventListener("change", () => handleFileSelection("secondary", "individual"));
+
 [
-  els.primaryFiles,
-  els.secondaryFiles,
   els.startDate,
   els.endDate,
-  els.renameFiles
+  els.renameFiles,
+  els.useOldFilenameForNew
 ].forEach(element =>
   element.addEventListener("change", () =>
     resetScanState("Inputs changed. Run Scan and preview again.")

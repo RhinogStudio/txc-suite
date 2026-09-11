@@ -8,6 +8,8 @@ Free browser-based tools for working with UK TransXChange timetable files.
 
 The tools process selected files locally in the browser. Files are not uploaded to Rhinog Studio or GitHub.
 
+Current suite build: **2026.09.10.1**. See [CHANGELOG.txt](CHANGELOG.txt) for release history.
+
 ## Use online
 
 Open [TXC Suite](https://rhinogstudio.github.io/txc-suite/).

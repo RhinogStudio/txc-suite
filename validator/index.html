@@ -31,7 +31,7 @@
   </style>
 </head>
 <body><div class="app">
-  <header><div class="brand"><svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#70459b" stroke="#fff" stroke-width="2"/><rect x="12" y="12" width="40" height="40" rx="8" fill="#fff"/><path d="M20 29h24M20 37h16" stroke="#70459b" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="43" r="5" fill="#c93d4d"/><circle cx="31" cy="43" r="5" fill="#f2b705"/></svg><div><h1>TXC Validator</h1><p>Bulk-check operating periods, initial headsigns and essential TransXChange references.</p></div></div></header>
+  <header><div class="brand"><svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#70459b" stroke="#fff" stroke-width="2"/><rect x="12" y="12" width="40" height="40" rx="8" fill="#fff"/><path d="M20 29h24M20 37h16" stroke="#70459b" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="43" r="5" fill="#c93d4d"/><circle cx="31" cy="43" r="5" fill="#f2b705"/></svg><div><h1>TXC Validator</h1><p>Bulk-check operating periods, initial headsigns and essential TransXChange references. · Suite build 2026.09.10.1</p></div></div></header>
   <main>
     <div class="notice">This validator is read-only and runs entirely inside your browser. It does not upload, modify, rename or overwrite any selected file.</div>
     <section class="load-section"><fieldset><legend>1. Select TXC data</legend><div class="load-grid">
@@ -73,6 +73,7 @@ function decode(bytes,name){let offset=bytes[0]===239&&bytes[1]===187&&bytes[2]=
 async function collect(onDocument){const selected=[...els.fileInput.files,...els.folderInput.files].filter(f=>/\.(xml|zip)$/i.test(f.name)),seen=new Set(),failures=[];let documents=0;if(!selected.length)throw new Error("Select at least one TXC XML file, ZIP file, or folder.");const accept=async c=>{try{progress("Parsing TXC data",c.name);await breathe();const doc={name:c.name,xml:parseXml(decode(c.bytes,c.name),c.name)};documents++;await onDocument(doc);doc.xml=null}catch(e){failures.push(e.message)}};for(let i=0;i<selected.length;i++){const file=selected[i],id=[file.webkitRelativePath||file.name,file.size,file.lastModified].join("|");if(seen.has(id))continue;seen.add(id);progress(`Processing selected file ${i+1} of ${selected.length}`,file.webkitRelativePath||file.name,i,selected.length);await breathe();try{if(/\.zip$/i.test(file.name))await unzip(file,accept);else await accept({name:file.webkitRelativePath||file.name,bytes:new Uint8Array(await file.arrayBuffer())})}catch(e){failures.push(`${file.webkitRelativePath||file.name}: ${e.message}`)}}return{documents,failures}}
 function operators(xml){const map=new Map;descendants(xml,"Operator").forEach(o=>{const id=o.getAttribute("id")||dtext(o,"OperatorCode"),code=dtext(o,"OperatorCode"),short=dtext(o,"OperatorShortName"),name=dtext(o,"TradingName")||dtext(o,"OperatorName")||short; if(id)map.set(id,{code,name:short||name||code});if(code)map.set(code,{code,name:short||name||code})});return map}
 function missingOrPlaceholder(value){return !String(value||"").trim()||/^(null|n\/?a|none|undefined)$/i.test(String(value).trim())}
+function validDuration(value){return /^P(?=\d|T\d)(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$/.test(value||"")}
 function serviceValidationIssues(service,xml){
   const issues=[];
   const warnings=[];
@@ -113,11 +114,13 @@ function serviceValidationIssues(service,xml){
 
   const patterns=children(standard,"JourneyPattern");
   const patternMap=new Map;
-  const sectionIds=new Set(
-    descendants(xml,"JourneyPatternSection")
-      .map(section=>section.getAttribute("id")||"")
-      .filter(Boolean)
-  );
+  const sectionMap=new Map(descendants(xml,"JourneyPatternSection")
+    .map(section=>[section.getAttribute("id")||"",section]).filter(([id])=>id));
+  const sectionIds=new Set(sectionMap.keys());
+  const routeIds=new Set(descendants(xml,"Route")
+    .map(route=>route.getAttribute("id")||"").filter(Boolean));
+  const annotatedStops=new Set(descendants(xml,"AnnotatedStopPointRef")
+    .map(stop=>dtext(stop,"StopPointRef")).filter(Boolean));
 
   if(!patterns.length){
     issues.push("StandardService has no JourneyPattern records");
@@ -131,6 +134,13 @@ function serviceValidationIssues(service,xml){
       issues.push(`${id}: missing or invalid initial DestinationDisplay`);
     }
 
+    const routeRef=dtext(pattern,"RouteRef");
+    if(!routeRef){
+      issues.push(`${id}: missing RouteRef`);
+    }else if(routeIds.size&&!routeIds.has(routeRef)){
+      issues.push(`${id}: RouteRef ${routeRef} was not found`);
+    }
+
     const refs=children(pattern,"JourneyPatternSectionRefs")
       .flatMap(item=>text(item).split(/\s+/).filter(Boolean));
     if(!refs.length){
@@ -142,13 +152,58 @@ function serviceValidationIssues(service,xml){
     }
   });
 
+  sectionMap.forEach((section,sectionId)=>{
+    const links=children(section,"JourneyPatternTimingLink");
+    let previousTo="";
+    links.forEach((link,index)=>{
+      const linkId=link.getAttribute("id")||`${sectionId} link ${index+1}`;
+      const from=child(link,"From"),to=child(link,"To");
+      const fromStop=from?dtext(from,"StopPointRef"):"";
+      const toStop=to?dtext(to,"StopPointRef"):"";
+      if(!fromStop)issues.push(`${linkId}: missing From/StopPointRef`);
+      if(!toStop)issues.push(`${linkId}: missing To/StopPointRef`);
+      if(annotatedStops.size&&fromStop&&!annotatedStops.has(fromStop)){
+        issues.push(`${linkId}: From stop ${fromStop} was not found in StopPoints`);
+      }
+      if(annotatedStops.size&&toStop&&!annotatedStops.has(toStop)){
+        issues.push(`${linkId}: To stop ${toStop} was not found in StopPoints`);
+      }
+      if(previousTo&&fromStop&&previousTo!==fromStop){
+        warnings.push(`${sectionId}: timing-link sequence breaks before ${linkId} (${previousTo} → ${fromStop})`);
+      }
+      const runTime=dtext(link,"RunTime");
+      if(!runTime){
+        warnings.push(`${linkId}: no RunTime supplied`);
+      }else if(!validDuration(runTime)){
+        issues.push(`${linkId}: invalid RunTime ${runTime}`);
+      }
+      [from,to].forEach((endPoint,endIndex)=>{
+        const wait=endPoint?dtext(endPoint,"WaitTime"):"";
+        if(wait&&!validDuration(wait)){
+          issues.push(`${linkId}: invalid ${endIndex?"To":"From"} WaitTime ${wait}`);
+        }
+      });
+      previousTo=toStop;
+    });
+  });
+
   const serviceCode=dtext(service,"ServiceCode");
   const journeys=descendants(xml,"VehicleJourney")
     .filter(journey=>dtext(journey,"ServiceRef")===serviceCode);
 
+  const journeyCodeGroups=new Map;
+
   journeys.forEach((journey,index)=>{
     const code=dtext(journey,"VehicleJourneyCode")||
       dtext(journey,"PrivateCode")||`VehicleJourney ${index+1}`;
+    const operational=child(journey,"Operational");
+    const ticketMachine=operational
+      ?descendants(operational,"TicketMachine")[0]
+      :null;
+    const journeyCode=ticketMachine?dtext(ticketMachine,"JourneyCode"):"";
+    if(missingOrPlaceholder(journeyCode)){
+      warnings.push(`${code}: missing Operational/TicketMachine/JourneyCode`);
+    }
     const patternRef=dtext(journey,"JourneyPatternRef");
     if(!patternRef){
       issues.push(`${code}: missing JourneyPatternRef`);
@@ -163,6 +218,15 @@ function serviceValidationIssues(service,xml){
     const journeyDirection=dtext(journey,"Direction").toLowerCase();
     const patternDirection=dtext(pattern,"Direction").toLowerCase();
     const simpleDirections=new Set(["inbound","outbound"]);
+    const effectiveDirection=simpleDirections.has(journeyDirection)
+      ?journeyDirection
+      :(simpleDirections.has(patternDirection)?patternDirection:"");
+    if(!missingOrPlaceholder(journeyCode)&&effectiveDirection){
+      const key=journeyCode.toLowerCase();
+      const group=journeyCodeGroups.get(key)||[];
+      group.push({code,journeyCode,direction:effectiveDirection});
+      journeyCodeGroups.set(key,group);
+    }
     if(simpleDirections.has(journeyDirection)&&
        simpleDirections.has(patternDirection)&&
        journeyDirection!==patternDirection){
@@ -171,6 +235,17 @@ function serviceValidationIssues(service,xml){
         `${patternRef}, which is ${patternDirection}`
       );
     }
+  });
+
+  journeyCodeGroups.forEach((group,journeyCode)=>{
+    const inbound=group.filter(item=>item.direction==="inbound");
+    const outbound=group.filter(item=>item.direction==="outbound");
+    if(!inbound.length||!outbound.length)return;
+    warnings.push(
+      `JourneyCode ${group[0].journeyCode} is used in both directions `+
+      `(inbound: ${inbound.map(item=>item.code).join(", ")}; `+
+      `outbound: ${outbound.map(item=>item.code).join(", ")})`
+    );
   });
 
   return{

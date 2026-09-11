@@ -1,0 +1,195 @@
+TXC SUITE CHANGELOG
+===================
+
+Purpose
+-------
+This file records user-facing changes to TXC Date Tool, TXC Viewer and
+TXC Validator. It should be updated whenever a tool is changed, tested and
+repackaged. The newest entry is always shown first.
+
+Release labels shown inside the tools identify the installed build. Earlier
+development packages did not display a build label, so their history is
+grouped into clear milestones below rather than assigning invented numbers.
+
+
+DOCUMENTATION UPDATE — 11 September 2026
+-----------------------------------------
+Affected item: TXC Suite package
+
+- Added this permanent plain-English changelog to the top level of the Suite.
+- Reconstructed the main earlier development milestones without inventing
+  release numbers that were not displayed at the time.
+- Established the changelog information that must accompany future updates.
+- No processing or validation behaviour changed in this documentation update.
+
+
+SUITE BUILD 2026.09.10.1 — 10 September 2026
+------------------------------------------------
+Affected tool: TXC Validator
+
+Fixed
+- Corrected the duplicate JourneyCode warning after operational feedback.
+- Reusing a JourneyCode across Monday-Friday, Saturday, Sunday, School Days,
+  School Holidays, university calendars or other service periods is allowed.
+- Reusing a JourneyCode across different patterns in the same direction is
+  allowed.
+- A warning is now produced only when the same ticket-machine JourneyCode is
+  used by both inbound and outbound journeys within the same service.
+- Direction is read from VehicleJourney first, with JourneyPattern direction
+  used only as a fallback.
+
+Example
+- Inbound 0720 and Saturday inbound 0720: allowed.
+- Inbound 0720 and outbound 0720: warning.
+- Inbound 0720 and outbound 0721: allowed.
+
+Verification
+- The final Gwynfor Coaches Remix export produced no cross-direction
+  JourneyCode conflicts.
+
+
+SUITE BUILD 2026.09.10 — 10 September 2026
+--------------------------------------------
+Affected tools: TXC Date Tool, TXC Viewer and TXC Validator
+
+TXC Date Tool
+- Added separate, clearly labelled controls for selecting a whole folder or
+  selecting individual XML files.
+- Replaced the confusing visible browser wording "Choose files" with custom
+  selection buttons.
+- Added a visible count confirming how many XML files were selected.
+- Clarified the sync preview so it separately shows the existing and resulting
+  periods for both the old and new files.
+- Added an optional matched-old-filename template for replacement files.
+- The filename preview now shows the exact proposed new output filename.
+- Added output filename collision detection. Conflicting filenames are stopped
+  for review instead of silently receiving suffixes such as _2.
+
+Filename example
+- Old: GWCO_S5-Llanberis-Pen-y-Pass_6_20260328_GCAS005.xml
+- New: GWCO_S5-Llanberis-Pen-y-Pass_20260913_GCAS005.xml
+
+TXC Viewer
+- Added a collapsible Source timing gaps section.
+- Source gaps are reported but are never filled, interpolated or calculated.
+- Added friendlier JourneyPattern descriptions using actual first and final
+  stops while retaining the original TXC JourneyPattern reference.
+- Displays a Remix pattern letter only when it can be identified consistently
+  from the source VehicleJourney codes; the Viewer does not guess one.
+
+TXC Validator
+- Added checks for missing or broken RouteRef values.
+- Added checks for missing or broken JourneyPatternSection references.
+- Added checks for missing From/To stop references and stop references that do
+  not exist in the file's StopPoints.
+- Added warnings for timing-link sequence discontinuities.
+- Added checks for missing or malformed RunTime and WaitTime values.
+- Initially introduced a broader JourneyCode duplicate rule. This was refined
+  in build 2026.09.10.1 after operational testing.
+
+All tools
+- Added a visible Suite build identifier to assist support, code review and
+  controlled distribution.
+
+
+VIEWER AND VALIDATOR DEVELOPMENT MILESTONES — AUGUST/SEPTEMBER 2026
+--------------------------------------------------------------------
+Affected tools: TXC Viewer and TXC Validator
+
+TXC Viewer — timetable presentation
+- Added subtle alternating timetable row colours.
+- Removed the duplicated journey-code display from timetable headers.
+- Kept journey codes exactly as supplied, without inserting a colon.
+- Added published Origin and Destination, actual pattern endpoints and initial
+  passenger-facing headsign as separate information.
+- Improved direction selection so explicit TXC inbound/outbound values take
+  priority over timetable headings.
+- Added user-friendly directional labels using the published timetable header,
+  including Via information where supplied.
+
+TXC Viewer — headsigns and dynamic destinations
+- Added an all-stop headsign view.
+- Distinguishes initial DestinationDisplay, dynamic changes and values carried
+  forward through subsequent stops.
+- Added clear change-point markers.
+- Split the area into individually collapsible JourneyPattern sections.
+- Placed the headsign area in its own bordered panel.
+
+TXC Viewer — merged WDMS files
+- Added an embedded timetable/version-date selector for WDMS files containing
+  multiple timetable generations.
+- Filters journeys, day types, directions, summaries and downloads to the
+  selected embedded timetable period.
+- Shows the overall service OperatingPeriod separately from embedded journey
+  calendar/version dates.
+- Added a warning when the selected embedded dates do not overlap the service
+  OperatingPeriod.
+
+TXC Viewer — Excel timetable
+- Replaced the long-form CSV data dump with a timetable-style Excel workbook.
+- Stops run vertically and journeys run horizontally with times in cells.
+- Weekday, Saturday, Sunday and other day types use labelled worksheets.
+- Both directions appear on the same worksheet, one below the other.
+- Shortened operating-day labels such as M-F, Tu, Th, Sa and Su.
+- Separated calendar qualifiers such as SD and SH from operating days.
+- Removed timing-status codes from the downloadable timetable.
+- Made Download timetable as Excel the primary action and moved Print second.
+
+TXC Viewer — source fidelity and dwell handling
+- Established the core rule that the Viewer displays source TXC data and never
+  invents intermediate stops or fills blank timetable cells.
+- Added arrival and departure rows for explicit dwell stops.
+- Added producer detection for Remix and Omnibus/Omni TXC feeds.
+- Added Remix endpoint-replacement handling for empty From/To dwell overrides.
+- Retained value-by-value dwell inheritance for identified Omnibus files.
+- Added a warning when the TXC producer cannot be identified.
+- Corrected short-working journeys so they terminate at the point stated in the
+  source instead of being extended to the end of the full pattern.
+- Added the detected TXC data feed to the Viewer and Excel output.
+
+TXC Validator — essential data checks
+- Added a required initial DestinationDisplay check for every JourneyPattern.
+- Treats empty values and placeholders such as NULL, N/A, None and Undefined
+  as missing.
+- Added missing published Origin and Destination checks.
+- Added missing JourneyPatternRef and broken JourneyPatternRef checks.
+- Added explicit VehicleJourney/JourneyPattern direction mismatch checks.
+- Added missing JourneyPatternSectionRefs checks.
+- Added missing ticket-machine JourneyCode warnings.
+- Added RegisteredOperatorRef resolution checks.
+- Displays NationalOperatorCode and OperatorCode separately.
+- Neither operator code present: error.
+- OperatorCode present but NationalOperatorCode absent: warning.
+- NationalOperatorCode present: passed.
+- Kept all data checks separate from Current, Expired and Expiring Soon date
+  classifications.
+- Added data-error and data-warning totals, filters and CSV output.
+
+
+INITIAL TXC SUITE — AUGUST 2026
+--------------------------------
+Affected tools: TXC Date Tool, TXC Viewer and TXC Validator
+
+- Combined the three portable browser tools into TXC Suite.zip.
+- Standardised names as TXC Date Tool, TXC Viewer and TXC Validator.
+- Added matching blue, green and purple visual identities and icons.
+- Added Windows shortcut creation/removal scripts and launchers.
+- Confirmed the HTML tools work locally without a server, account, database,
+  external API or internet connection.
+- TXC Date Tool supported matched end/start date processing, end-date-only and
+  start-date-only modes while preserving the original selected XML files.
+- TXC Viewer displayed service, operator, NOC/operator code, timetable and
+  journey information.
+- TXC Validator checked service operating dates and classified files as Current,
+  Expired, Expiring Soon, Open-ended or Invalid.
+
+
+CHANGELOG RULE FOR FUTURE RELEASES
+----------------------------------
+Every future entry should include:
+- Build or version identifier and date.
+- Which tool or tools changed.
+- Added, changed and fixed behaviour in plain English.
+- Any important compatibility or data-interpretation decision.
+- The sample files or scenarios used for verification.
+- Any known limitation that remains.
