@@ -12,8 +12,12 @@ Current suite build: **2026.09.10.1**. See [CHANGELOG.txt](CHANGELOG.txt) for re
 
 ## Use online
 
-Open [TXC Suite](https://rhinogstudio.github.io/txc-suite/).
+Open [TXC Suite](https://rhinogstudio.co.uk/txc-suite/).
 
 ## Publisher
 
 TXC Suite is maintained by [Rhinog Studio](https://github.com/RhinogStudio).
+
+## Hosting
+
+Production is hosted on Cloudflare at https://rhinogstudio.co.uk/txc-suite/. Tool source stays in this repository. GitHub Pages serves only `docs/`, which redirects old addresses to matching production pages. Keep Pages enabled to preserve bookmarks.

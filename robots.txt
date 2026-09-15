@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://rhinogstudio.github.io/txc-suite/sitemap.xml
+Sitemap: https://rhinogstudio.co.uk/txc-suite/sitemap.xml
