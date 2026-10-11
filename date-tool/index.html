@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwYjYzYTYiLz4KICA8cmVjdCB4PSIxMiIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSIzNyIgcng9IjciIGZpbGw9IiNmZmZmZmYiLz4KICA8cGF0aCBkPSJNMTIgMjNoNDB2LTJhNiA2IDAgMCAwLTYtNkgxOGE2IDYgMCAwIDAtNiA2eiIgZmlsbD0iI2NmZThmNyIvPgogIDxwYXRoIGQ9Ik0yMiAxMXY5TTQyIDExdjkiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNMjEgMzJoMTltLTUtNSA1IDUtNSA1IiBmaWxsPSJub25lIiBzdHJva2U9IiMwYjYzYTYiCiAgICAgICAgc3Ryb2tlLXdpZHRoPSIzLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik00MyA0MkgyNG01IDUtNS01IDUtNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGI2M2E2IgogICAgICAgIHN0cm9rZS13aWR0aD0iMy4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <title>TXC Date Tool — Update TransXChange Dates Online</title>
-  <meta name="description" content="Review and batch-update dates in TransXChange XML files securely in your browser. Original TXC files are not overwritten or uploaded.">
-  <meta name="author" content="Rhinog Studio">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://rhinogstudio.co.uk/txc-suite/date-tool/">
+  <title>TXC Date Tool</title>
   <style>
     :root {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -279,7 +275,7 @@
 </svg></div>
       <div>
         <h1>TXC Date Tool</h1>
-        <p>Offline date processing, batch changes and output filename management. · Suite build 2026.09.10.1</p>
+        <p>Offline date processing, batch changes and output filename management. · Suite build 2026.10.05.3</p>
       </div>
     </div>
   </header>
@@ -376,9 +372,8 @@
         <div>
           <label for="useOldFilenameForNew">Use each matched old filename as the template for its new replacement file</label>
           <small>
-            Keeps the operator and route wording from the correctly named old file, replaces its old date with the new StartDate,
-            and retains the ServiceCode at the end. Example:
-            <code>GWCO_S5-Llanberis-Pen-y-Pass_20260913_GCAS005.xml</code>.
+            Keeps the operator, service and route wording from the correctly named old file. Existing filename dates are removed
+            and replaced with the resulting StartDate and EndDate; unchanged XML dates are carried forward automatically.
           </small>
         </div>
       </div>
@@ -893,26 +888,64 @@ function resultingSyncPeriod(recordOrRecords, dates, role) {
   return `${start} → ${end}`;
 }
 
-function oldTemplateOutputPath(oldPath, serviceCode, startDate) {
-  const parts = splitFilename(oldPath);
-  const compactDate = String(startDate || "").replaceAll("-", "") || "NO_START";
+function cleanTemplateStem(stem, serviceCode, removeLegacyNumber = false) {
   const escapedCode = String(serviceCode || "")
     .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  let stem = parts.stem;
+  let cleaned = stem;
 
   if (escapedCode) {
-    stem = stem.replace(new RegExp(`(?:[_-])?${escapedCode}$`, "i"), "");
+    cleaned = cleaned.replace(
+      new RegExp(`(?:[_-])?${escapedCode}$`, "i"),
+      ""
+    );
   }
 
-  const datedSuffix = stem.match(/^(.*?)(?:[_-])(\d{8})$/);
-  if (datedSuffix) stem = datedSuffix[1];
-  stem = stem.replace(/(?:[_-])\d+$/, "");
-  stem = stem.replace(/[_-]+$/, "");
+  cleaned = cleaned
+    .replace(/(?:^|[_-])(?:19|20)\d{2}-\d{2}-\d{2}(?=$|[_-])/g, "_")
+    .replace(/(?:^|[_-])(?:19|20)\d{6}(?=$|[_-])/g, "_")
+    .replace(/(?:^|[_-])OPEN(?=$|[_-])/gi, "_")
+    .replace(/(?:^|[_-])to(?=$|[_-])/gi, "_")
+    .replace(/_{2,}/g, "_")
+    .replace(/^[_-]+|[_-]+$/g, "");
 
-  const prefix = sanitizeFilenamePart(stem);
+  if (removeLegacyNumber) {
+    cleaned = cleaned.replace(/_\d+$/, "").replace(/_+$/, "");
+  }
+
+  return cleaned;
+}
+
+function resultDatedOutputPath(
+  templatePath,
+  serviceCode,
+  startDate,
+  endDate,
+  removeLegacyNumber = false
+) {
+  const parts = splitFilename(templatePath);
+  const prefix = sanitizeFilenamePart(
+    cleanTemplateStem(parts.stem, serviceCode, removeLegacyNumber)
+  );
+  const start = sanitizeFilenamePart(
+    String(startDate || "").replaceAll("-", "") || "NO_START"
+  );
+  const end = sanitizeFilenamePart(
+    String(endDate || "").replaceAll("-", "") || "OPEN"
+  );
   const code = sanitizeFilenamePart(serviceCode || "SERVICE");
+
   return safeZipPath(
-    `${parts.directory}${prefix}_${sanitizeFilenamePart(compactDate)}_${code}${parts.extension || ".xml"}`
+    `${parts.directory}${prefix}_${start}_to_${end}_${code}${parts.extension || ".xml"}`
+  );
+}
+
+function oldTemplateOutputPath(oldPath, serviceCode, startDate, endDate) {
+  return resultDatedOutputPath(
+    oldPath,
+    serviceCode,
+    startDate,
+    endDate,
+    true
   );
 }
 
@@ -929,13 +962,15 @@ function plannedNewOutputPath(row, dates) {
     return oldTemplateOutputPath(
       row.oldRecords[0].displayPath,
       row.code,
-      dates.start
+      dates.start,
+      dates.end || row.newRecords[0].endDate
     );
   }
   return datedOutputPath(
     row.newRecords[0].displayPath,
     dates.start,
-    dates.end || row.newRecords[0].endDate
+    dates.end || row.newRecords[0].endDate,
+    row.code
   );
 }
 
@@ -1457,18 +1492,15 @@ function sanitizeFilenamePart(value) {
     .slice(0, 140) || "file";
 }
 
-function datedOutputPath(originalPath, startDate, endDate) {
+function datedOutputPath(originalPath, startDate, endDate, serviceCode = "") {
   if (!els.renameFiles.checked) {
     return safeZipPath(originalPath);
   }
-
-  const parts = splitFilename(originalPath);
-  const startPart = sanitizeFilenamePart(startDate || "NO_START");
-  const endPart = sanitizeFilenamePart(endDate || "OPEN");
-  const stem = sanitizeFilenamePart(parts.stem);
-
-  return safeZipPath(
-    `${parts.directory}${stem}_${startPart}_to_${endPart}${parts.extension || ".xml"}`
+  return resultDatedOutputPath(
+    originalPath,
+    serviceCode,
+    startDate,
+    endDate
   );
 }
 
@@ -1628,7 +1660,10 @@ async function processAndDownload() {
               )?.result_start || "",
               reportRows.find(row =>
                 row.source_role === "old" && row.file === doc.displayPath
-              )?.result_end || ""
+              )?.result_end || "",
+              reportRows.find(row =>
+                row.source_role === "old" && row.file === doc.displayPath
+              )?.service_code || ""
             )}`,
             usedPaths
           ),
@@ -1648,12 +1683,14 @@ async function processAndDownload() {
             ? oldTemplateOutputPath(
                 template.oldPath,
                 template.serviceCode,
-                matchingReport?.result_start || dates.start
+                matchingReport?.result_start || dates.start,
+                matchingReport?.result_end || dates.end || ""
               )
             : datedOutputPath(
                 doc.displayPath,
                 matchingReport?.result_start || "",
-                matchingReport?.result_end || ""
+                matchingReport?.result_end || "",
+                matchingReport?.service_code || template?.serviceCode || ""
               );
         entries.push({
           name: uniqueZipPath(
@@ -1733,7 +1770,8 @@ async function processAndDownload() {
             `${outputFolder}/${datedOutputPath(
               doc.displayPath,
               matchingReport?.result_start || "",
-              matchingReport?.result_end || ""
+              matchingReport?.result_end || "",
+              matchingReport?.service_code || ""
             )}`,
             usedPaths
           ),
