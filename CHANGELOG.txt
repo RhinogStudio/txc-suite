@@ -12,6 +12,312 @@ development packages did not display a build label, so their history is
 grouped into clear milestones below rather than assigning invented numbers.
 
 
+SUITE BUILD 2026.10.05.3 — 5 October 2026
+-------------------------------------------
+Affected tool: TXC Validator
+
+- Replaced internal VehicleJourney and ServicedOrganisation codes in
+  JourneyCode plausibility warnings with an operational location that staff
+  can find in a timetable.
+- Warnings now show departure time, effective direction, operating days and
+  the journey's actual first and final stops.
+- A recognisable academic type such as School Days, School Holidays, College
+  Days or University Holidays is included only when it is supported by the
+  source TXC; the Validator does not invent a name for an unnamed calendar.
+- The earlier T5 example is now located as: 07:37 outbound, Monday-Friday,
+  Haverfordwest Railway Station to Ffordd yr Efail 2.
+
+
+SUITE BUILD 2026.10.05.2 — 5 October 2026
+-------------------------------------------
+Affected tool: TXC Validator
+
+- JourneyCode plausibility warnings now identify the precise journey location:
+  VehicleJourney identifier, effective inbound/outbound direction, operating
+  days and referenced ServicedOrganisation calendar/service period.
+- This makes a mismatched JourneyCode practical to locate in services with many
+  journeys and calendars.
+- Verified against the earlier T5 example: JourneyCode 0734 was attached to
+  outbound VehicleJourney 24085, departing 07:37 Monday-Friday on calendar
+  SO_197.
+- The updated T5 file no longer contains that JourneyCode mismatch.
+
+
+SUITE BUILD 2026.10.05.1 — 5 October 2026
+-------------------------------------------
+Affected tools: TXC Viewer and TXC Validator
+
+- Added core calendar coverage checks for services which contain weekday,
+  Saturday or Sunday journeys whose underlying calendar dates finish
+  substantially earlier than the other core operating days.
+- The warning identifies the affected day or day group, its final supplied
+  date and the later date reached by the remaining core calendars.
+- This detects a timetable which still contains Sunday journey records but
+  whose Sunday calendar has accidentally been left without later dates.
+- Bank Holiday-only calendars are excluded from the comparison.
+- School, college, university and other academic calendars are not required
+  to match the core calendar dates; the comparison uses the latest available
+  coverage for each core day so shorter academic terms do not create a warning
+  when a normal calendar continues.
+- A difference of up to eight days is accepted so the natural final Monday,
+  Saturday and Sunday dates near the end of one operating period do not create
+  false warnings.
+- Verified against the supplied T5 file: Sunday coverage ends on 27 September
+  2026 while the remaining core days continue into September 2027.
+
+
+SUITE BUILD 2026.10.01.6 — 1 October 2026
+-------------------------------------------
+Affected tools: TXC Viewer and TXC Validator
+
+- A journey profile explicitly marked HolidaysOnly is now treated as the
+  authoritative dedicated Bank Holiday timetable.
+- The Viewer continues to display that dedicated timetable, but warns if an
+  ordinary Standard, School, College or University calendar is also marked to
+  operate on the same Bank Holiday or has no explicit setting for it.
+- The Validator applies the same rule and identifies the affected holiday and
+  calendar/service-period name.
+- Ordinary calendars explicitly marked as not operating on each general Bank
+  Holiday pass when a dedicated Bank Holiday timetable exists.
+- A contradictory HolidaysOnly journey which is also marked not to operate on
+  a general Bank Holiday is reported.
+- Existing Bank Holiday comparison behaviour remains unchanged for services
+  which do not contain a dedicated HolidaysOnly profile.
+
+
+SUITE BUILD 2026.10.01.5 — 1 October 2026
+-------------------------------------------
+Affected tool: TXC Validator
+
+- Added Bank Holiday consistency validation matching the Viewer's cautious
+  Bank Holiday timetable detection.
+- The Validator now warns when different general Bank Holidays produce
+  different journey sets for the same service.
+- The warning groups holidays which produce the same result and identifies the
+  exact Remix calendar/service-period names marked to run, with journey counts.
+- It also reports journey records containing contradictory operation and
+  non-operation instructions or no explicit setting for a represented holiday.
+- The warning advises checking every calendar used by the service for the
+  intended No Service, Sunday Service or other Bank Holiday selection.
+- Verified against service 90, where New Year, May Day and the remaining
+  general Bank Holidays currently select three different journey/calendar
+  combinations.
+
+
+SUITE BUILD 2026.10.01.4 — 1 October 2026
+-------------------------------------------
+Affected tool: TXC Validator
+
+- Tightened the cross-direction JourneyCode warning to the operational ticket-
+  machine conflict it is intended to detect.
+- A warning is now produced only when the same JourneyCode is assigned to an
+  inbound and an outbound journey which have the same scheduled departure time
+  and run on the same or overlapping operating days.
+- Reusing the same JourneyCode on different days, at different departure times
+  or repeatedly within one direction is not warned about.
+- Warning details are limited to the journey records forming the actual clash.
+- Added a separate gentle plausibility warning when a four-digit time-style
+  JourneyCode differs from its scheduled departure by more than one minute.
+- Exact start-time codes and intentional one-minute adjustments are accepted;
+  alphanumeric and other non-time-style codes are not second-guessed.
+
+
+SUITE BUILD 2026.10.01.3 — 1 October 2026
+-------------------------------------------
+Affected tool: TXC Viewer
+
+- Added display-only consolidation for unnecessary weekday splits produced by
+  shared Remix operator calendars.
+- Identical complementary records, such as Monday-Thursday plus Friday, are
+  shown as one Monday-Friday journey column.
+- Journeys are merged only when their pattern, departure, JourneyCode,
+  direction, destination, short-working point, timings, dynamic displays,
+  notes, stop activities and academic-calendar family agree.
+- Records which overlap on the same day are never merged, preventing a genuine
+  duplicate from being hidden.
+- Genuine Friday-only, Monday-only or other day-specific journeys remain
+  separate whenever any operational detail differs or no matching record
+  exists for the other weekdays.
+- The screen status reports when source records were consolidated, and hover
+  information retains every original TXC VehicleJourneyCode.
+- Excel timetable downloads use the same safe consolidation rule.
+- Verification against the supplied Remix service 19 found 53 weekday source
+  records: 46 formed 23 exact M-Th/Friday pairs, producing 30 displayed
+  columns while seven genuine day-specific records remained separate.
+
+
+SUITE BUILD 2026.10.01.2 — 1 October 2026
+-------------------------------------------
+Affected tools: TXC Viewer and TXC Validator
+
+TXC Viewer
+- Reworded the Bank Holiday warning around Remix's calendar/service-period
+  method. It now advises checking every calendar used by the service for an
+  explicit Bank Holiday choice such as No Service or Sunday Service.
+- Added separate academic-calendar journey codes: SD/SH for school days and
+  holidays, CD/CH for college days and holidays, and UD/UH for university
+  days and holidays.
+- Removed the broad "term time" assumption which could incorrectly label
+  college or university calendars as SD or SH.
+- Updated timetable labels, hover explanations, legends and Excel trip-type
+  codes to use the identified school, college or university category.
+
+TXC Validator
+- Clarified the cross-direction JourneyCode warning. It now states that the
+  same JourneyCode is assigned in both directions on overlapping operating
+  days, rather than implying that departure times themselves are duplicated.
+- The warning now shows each journey's actual departure time beside its TXC
+  VehicleJourneyCode, making incorrect JourneyCode assignments easier to find.
+- The warning explains that a JourneyCode may intentionally differ from the
+  departure time when adjusted to keep opposite directions unique.
+- Calendar recognition now distinguishes school, college and university day
+  and holiday calendars and no longer treats generic term wording as school.
+
+
+SUITE BUILD 2026.10.01.1 — 1 October 2026
+-------------------------------------------
+Affected tool: TXC Viewer
+
+- Reworded the inconsistent Bank Holiday schedule warning in plain English.
+- The warning now explains that the source file assigns different journeys,
+  or no journeys, to different Bank Holidays and therefore cannot be safely
+  presented as one combined Bank Holiday timetable.
+- Removed the lengthy technical list of individual holiday exclusions from
+  the warning. Bank Holiday timetable detection itself is unchanged.
+
+
+SUITE BUILD 2026.09.30.4 — 30 September 2026
+----------------------------------------------
+Affected tool: TXC Viewer
+
+- Corrected stop-note scoping when different journey patterns share the same
+  physical stop.
+- Notes and request-stop information are now read from the exact incoming and
+  outgoing timing-link endpoints belonging to each journey's own pattern.
+- This prevents a note on one pattern from appearing on other patterns merely
+  because they use the same NaPTAN stop.
+- Journey-specific timing-link overrides remain supported.
+
+Verification
+- In service 146, DRVR is now limited to JP4's weekday 20:30 and Saturday
+  21:30 journeys at Wrexham Bus Station 2. The ordinary JP5 journeys retain
+  their genuine S (Set down only) marker without inheriting DRVR.
+
+
+SUITE BUILD 2026.09.30.3 — 30 September 2026
+----------------------------------------------
+Affected tool: TXC Viewer
+
+- Shortened the activity markers to P for Pick up only and S for Set down only.
+- The full meaning and original TXC Activity value remain available on hover.
+- Timetable times are now held centrally in each cell while note and activity
+  codes sit separately to the side, keeping time columns vertically aligned.
+- Operator NoteCode values such as DRVR are still displayed in full, exactly as
+  supplied, with no translation or change of case.
+- Excel cells use the same compact P and S activity markers.
+
+
+SUITE BUILD 2026.09.30.2 — 30 September 2026
+----------------------------------------------
+Affected tool: TXC Viewer
+
+- Added visible Pick up only and Set down only markers beside the applicable
+  timetable cells, based on each journey's exact TXC Activity value.
+- Activity restrictions supplied on VehicleJourneyTimingLink overrides are
+  applied only to the affected journeys and stops.
+- Activity markers remain separate from operator NoteCode values. Note codes
+  continue to be displayed exactly as supplied, including their original case;
+  no code or missing time is inferred or invented.
+- The Excel timetable also includes the Pick up only and Set down only markers.
+
+Verification
+- Checked against the supplied T8 file, which contains 1,056 pickUp and 1,050
+  setDown Activity elements on VehicleJourney timing-link endpoints.
+
+
+SUITE BUILD 2026.09.30.1 — 30 September 2026
+----------------------------------------------
+Affected tool: TXC Viewer
+
+- Added support for stop-usage Notes and StopOnlyOnRequest information.
+- Request-stop notes are associated with the exact stop and journeys that use
+  the relevant JourneyPattern or VehicleJourney timing-link endpoint.
+- The exact TXC NoteCode is displayed beside the time; it is also displayed
+  when the source provides a note code but no time for that cell.
+- The Viewer does not invent or translate note codes. For example, DRVR remains
+  DRVR and is not silently changed to R.
+- A Request stop marker and a Stop and request notes legend expose the supplied
+  NoteText and StopOnlyOnRequest value.
+- The Excel timetable includes the supplied note code in the applicable cell
+  and includes a stop-note legend beneath the timetable.
+- Private TXC notes are not displayed.
+
+Verification
+- Checked against service 146: DRVR / "Coordinate with driver to arrange drop
+  off" is attached to Wrexham Bus Station 2 for JP4's weekday 20:30 and
+  Saturday 21:30 journeys, with StopOnlyOnRequest=true.
+
+
+SUITE BUILD 2026.09.29.1 — 29 September 2026
+----------------------------------------------
+Affected tools: TXC Validator and TXC Viewer
+
+TXC Validator
+- Refined the opposite-direction JourneyCode warning so the journeys must also
+  have overlapping operating days or calendars.
+- The same code in opposite directions remains a warning when both journeys
+  operate Monday-Friday, both operate Saturday, or otherwise overlap.
+- Reuse on mutually exclusive days is allowed, such as weekday inbound 0700
+  and Saturday outbound 0700.
+- School Days and School Holidays are treated as mutually exclusive calendars.
+
+TXC Viewer
+- School qualifiers are now limited to journeys with explicit school-calendar
+  evidence rather than every ServicedOrganisation working-day calendar.
+- SD means School Days and SH means School Holidays/non-school days.
+- Ordinary seasonal or standard Monday-Friday calendars no longer receive an
+  SD badge merely because TXC represents them as organisation working days.
+
+Verification
+- Checked the Validator against the supplied Edwards Coaches 400 TXC. Its six
+  weekday/Saturday/Sunday/Bank Holiday false warnings are no longer reported.
+- Checked the Viewer rules against the supplied 351 TXC: 15:15 is SD, 15:30 is
+  SH, and ordinary Monday-Friday journeys have no school qualifier.
+
+
+SUITE BUILD 2026.09.22 — 22 September 2026
+--------------------------------------------
+Affected tools: TXC Viewer and TXC Date Tool
+
+TXC Viewer
+- Replaced the broad Bank Holiday grouping that treated any
+  BankHolidayOperation/DaysOfOperation entry as a complete timetable.
+- Christmas Eve and New Year's Eve no longer create a Bank Holiday view.
+- Christmas Day and Boxing Day remain exceptions and do not establish the
+  general Bank Holiday timetable.
+- The Viewer now checks all explicitly represented general Bank Holidays for
+  one consistent journey set.
+- When that explicit set exactly matches the Sunday journeys, one combined
+  "Sundays & Bank Holidays" option is shown.
+- Sunday service alone never implies Bank Holiday service.
+- Conflicting, partial or inconsistent Bank Holiday journey sets are reported
+  as a Viewer warning and are not presented as a valid generic timetable.
+
+TXC Date Tool
+- Corrected output filenames so old StartDate or EndDate values are not copied
+  into the newly generated filename.
+- Existing filename date tokens are removed before the result is named.
+- Result filenames now use the actual resulting XML StartDate and EndDate.
+- A changed boundary uses the newly entered date; an unchanged boundary uses
+  the date retained from the source XML.
+- The matched old filename can still provide the operator, service and route
+  header wording, with the ServiceCode retained at the end.
+
+Verification
+- Tested the Viewer against the supplied T11 and S4 Remix TXCs.
+- Tested filename results for start-only, end-only and start-and-end changes.
+
+
 DOCUMENTATION UPDATE — 11 September 2026
 -----------------------------------------
 Affected item: TXC Suite package
