@@ -23,3 +23,5 @@ TXC Suite is maintained by [Rhinog Studio](https://github.com/RhinogStudio).
 ## Hosting
 
 Production is hosted on Cloudflare at https://rhinogstudio.co.uk/txc-suite/. Tool source stays in this repository. GitHub Pages serves only `docs/`, which redirects old addresses to matching production pages. Keep Pages enabled to preserve bookmarks.
+
+Production deployments are connected to the `main` branch through Cloudflare Workers Builds.
