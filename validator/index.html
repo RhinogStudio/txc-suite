@@ -4,11 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <title>TXC Validator — Check TransXChange Files Online</title>
-  <meta name="description" content="Check TransXChange XML and ZIP files for expiring services, missing operator details and common TXC data-quality problems. Files stay on your device.">
-  <meta name="author" content="Rhinog Studio">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://rhinogstudio.co.uk/txc-suite/validator/">
+  <title>TXC Validator</title>
   <style>
     :root{--brand:#70459b;--brand-dark:#57327b;--ink:#3f2d52;--muted:#6f6678;--line:#d8cee2;--soft:#f5f0f9;--red:#b42318;--red-bg:#fee4e2;--amber:#7a4d00;--amber-bg:#fff3cd;--green:#157347;--green-bg:#e5f6eb;--blue:#175cd3;--blue-bg:#eaf2ff}
     *{box-sizing:border-box} body{margin:0;background:#f7f4f9;color:#28222e;font:15px/1.45 "Segoe UI",Arial,sans-serif}
@@ -31,7 +27,7 @@
   </style>
 </head>
 <body><div class="app">
-  <header><div class="brand"><svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#70459b" stroke="#fff" stroke-width="2"/><rect x="12" y="12" width="40" height="40" rx="8" fill="#fff"/><path d="M20 29h24M20 37h16" stroke="#70459b" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="43" r="5" fill="#c93d4d"/><circle cx="31" cy="43" r="5" fill="#f2b705"/></svg><div><h1>TXC Validator</h1><p>Bulk-check operating periods, initial headsigns and essential TransXChange references. · Suite build 2026.09.10.1</p></div></div></header>
+  <header><div class="brand"><svg class="icon" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#70459b" stroke="#fff" stroke-width="2"/><rect x="12" y="12" width="40" height="40" rx="8" fill="#fff"/><path d="M20 29h24M20 37h16" stroke="#70459b" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="43" r="5" fill="#c93d4d"/><circle cx="31" cy="43" r="5" fill="#f2b705"/></svg><div><h1>TXC Validator</h1><p>Bulk-check operating periods, initial headsigns and essential TransXChange references. · Suite build 2026.10.05.3</p></div></div></header>
   <main>
     <div class="notice">This validator is read-only and runs entirely inside your browser. It does not upload, modify, rename or overwrite any selected file.</div>
     <section class="load-section"><fieldset><legend>1. Select TXC data</legend><div class="load-grid">
@@ -74,6 +70,296 @@ async function collect(onDocument){const selected=[...els.fileInput.files,...els
 function operators(xml){const map=new Map;descendants(xml,"Operator").forEach(o=>{const id=o.getAttribute("id")||dtext(o,"OperatorCode"),code=dtext(o,"OperatorCode"),short=dtext(o,"OperatorShortName"),name=dtext(o,"TradingName")||dtext(o,"OperatorName")||short; if(id)map.set(id,{code,name:short||name||code});if(code)map.set(code,{code,name:short||name||code})});return map}
 function missingOrPlaceholder(value){return !String(value||"").trim()||/^(null|n\/?a|none|undefined)$/i.test(String(value).trim())}
 function validDuration(value){return /^P(?=\d|T\d)(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$/.test(value||"")}
+function schoolCalendarQualifier(journey){
+  const values=[dtext(journey,"VehicleJourneyCode"),dtext(journey,"PrivateCode")];
+  const profile=child(journey,"OperatingProfile");
+  if(profile){
+    descendants(profile,"ServicedOrganisationRef").forEach(ref=>values.push(text(ref)));
+  }
+  for(const value of values){
+    const normal=String(value||"").replaceAll("_"," ").replaceAll("-"," ");
+    if(/(?:^|\s)UH(?:\s|$)|(?:university|uni)\s*holidays?|non\s*(?:university|uni)/i.test(normal))return"UH";
+    if(/(?:^|\s)UD(?:\s|$)|(?:university|uni)\s*days?/i.test(normal))return"UD";
+    if(/(?:^|\s)CH(?:\s|$)|college\s*holidays?|non\s*college/i.test(normal))return"CH";
+    if(/(?:^|\s)CD(?:\s|$)|college\s*days?/i.test(normal))return"CD";
+    if(/(?:^|\s)SH(?:\s|$)|school\s*holidays?|non\s*school/i.test(normal))return"SH";
+    if(/(?:^|\s)SD(?:\s|$)|school\s*days?|schooldays?/i.test(normal))return"SD";
+  }
+  return"";
+}
+function expandedOperatingDays(profile){
+  const all=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const result=new Set;
+  const days=descendants(profile,"DaysOfWeek")[0];
+  const codes=Array.from(days?.children||[]).map(lname);
+  const add=values=>values.forEach(value=>result.add(value));
+  codes.forEach(code=>{
+    if(all.includes(code))result.add(code);
+    else if(code==="MondayToFriday")add(all.slice(0,5));
+    else if(code==="MondayToSaturday")add(all.slice(0,6));
+    else if(code==="MondayToSunday")add(all);
+    else if(code==="Weekend")add(all.slice(5));
+    else if(code.startsWith("Not")&&all.includes(code.slice(3)))add(all.filter(day=>day!==code.slice(3)));
+  });
+  if(descendants(profile,"SchooldaysOnly").length&&!result.size)add(all.slice(0,5));
+  return result;
+}
+function bankHolidaySets(profile){
+  const operation=child(profile,"BankHolidayOperation");
+  const read=name=>new Set(Array.from(child(operation,name)?.children||[]).map(lname));
+  return{operates:read("DaysOfOperation"),doesNotOperate:read("DaysOfNonOperation")};
+}
+const validatorGeneralBankHolidays=[
+  "NewYearsDay","NewYearsDayHoliday","GoodFriday","EasterMonday",
+  "MayDay","SpringBank","LateSummerBankHolidayNotScotland"
+];
+const validatorBankHolidayLabels={
+  NewYearsDay:"New Year's Day",
+  NewYearsDayHoliday:"New Year's Day substitute holiday",
+  GoodFriday:"Good Friday",
+  EasterMonday:"Easter Monday",
+  MayDay:"May Day",
+  SpringBank:"Spring Bank Holiday",
+  LateSummerBankHolidayNotScotland:"Late Summer Bank Holiday"
+};
+function bankHolidayCalendarLabel(journey,serviceCode){
+  const profile=child(journey,"OperatingProfile");
+  const refs=profile?descendants(profile,"ServicedOrganisationRef")
+    .map(text).filter(Boolean):[];
+  if(refs.length)return Array.from(new Set(refs)).join(" + ");
+  const code=dtext(journey,"VehicleJourneyCode")||dtext(journey,"PrivateCode");
+  const marker=serviceCode?`-${serviceCode}`:"";
+  const markerIndex=marker?code.indexOf(marker):-1;
+  if(markerIndex>0)return code.slice(0,markerIndex);
+  return code||"Calendar not named";
+}
+function bankHolidayConsistencyWarning(journeys,serviceCode){
+  const records=journeys.map(journey=>{
+    const profile=child(journey,"OperatingProfile");
+    const bank=bankHolidaySets(profile);
+    return{
+      code:dtext(journey,"VehicleJourneyCode")||dtext(journey,"PrivateCode"),
+      calendar:bankHolidayCalendarLabel(journey,serviceCode),
+      holidayOnly:Boolean(child(child(profile,"RegularDayType"),"HolidaysOnly")),
+      operates:bank.operates,
+      doesNotOperate:bank.doesNotOperate
+    };
+  });
+  const dedicated=records.filter(record=>record.holidayOnly);
+  if(dedicated.length){
+    const others=records.filter(record=>!record.holidayOnly);
+    const issues=[];
+    const explicitlyDedicated=new Set(
+      dedicated.flatMap(record=>Array.from(record.operates))
+    );
+    const holidaysToCheck=explicitlyDedicated.size
+      ?validatorGeneralBankHolidays.filter(holiday=>explicitlyDedicated.has(holiday))
+      :validatorGeneralBankHolidays;
+    holidaysToCheck.forEach(holiday=>{
+      const label=validatorBankHolidayLabels[holiday]||holiday;
+      const conflicting=others.filter(record=>record.operates.has(holiday));
+      const unstated=others.filter(record=>
+        !record.operates.has(holiday)&&!record.doesNotOperate.has(holiday)
+      );
+      const dedicatedExcluded=dedicated.filter(record=>
+        record.doesNotOperate.has(holiday)
+      );
+      if(conflicting.length){
+        const calendars=Array.from(new Set(conflicting.map(record=>record.calendar))).join(", ");
+        issues.push(`${label}: non-Bank-Holiday calendar(s) also marked to run — ${calendars}`);
+      }
+      if(unstated.length){
+        const calendars=Array.from(new Set(unstated.map(record=>record.calendar))).join(", ");
+        issues.push(`${label}: no explicit Bank Holiday setting on non-Bank-Holiday calendar(s) — ${calendars}`);
+      }
+      if(dedicatedExcluded.length){
+        const calendars=Array.from(new Set(dedicatedExcluded.map(record=>record.calendar))).join(", ");
+        issues.push(`${label}: Bank-Holidays-only journey(s) are also marked not to run — ${calendars}`);
+      }
+    });
+    if(!issues.length)return"";
+    return "A dedicated Bank Holiday timetable exists, but its calendar settings overlap or are incomplete. "+
+      issues.join("; ")+". In Remix, the dedicated Bank Holiday calendar should normally be the only calendar operating on these holidays, and every Standard, School, College or University calendar should explicitly be set to No Service.";
+  }
+  const represented=validatorGeneralBankHolidays.filter(holiday=>
+    records.some(record=>
+      record.operates.has(holiday)||record.doesNotOperate.has(holiday)
+    )
+  );
+  if(!represented.length)return"";
+  const schedules=represented.map(holiday=>{
+    const operating=records.filter(record=>record.operates.has(holiday));
+    const conflicts=records.filter(record=>
+      record.operates.has(holiday)&&record.doesNotOperate.has(holiday)
+    );
+    const unstated=records.filter(record=>
+      !record.operates.has(holiday)&&!record.doesNotOperate.has(holiday)
+    );
+    const calendars=new Map;
+    operating.forEach(record=>
+      calendars.set(record.calendar,(calendars.get(record.calendar)||0)+1)
+    );
+    return{
+      holiday,operating,conflicts,unstated,calendars,
+      signature:operating.map(record=>record.code).sort().join("|")
+    };
+  });
+  if(!schedules.some(schedule=>schedule.operating.length))return"";
+  const reference=schedules[0].signature;
+  const inconsistent=schedules.some(schedule=>
+    schedule.signature!==reference||schedule.conflicts.length||schedule.unstated.length
+  );
+  if(!inconsistent)return"";
+
+  const grouped=new Map;
+  schedules.forEach(schedule=>{
+    const calendarSummary=Array.from(schedule.calendars.entries())
+      .sort(([left],[right])=>left.localeCompare(right))
+      .map(([calendar,count])=>`${calendar} (${count} journey${count===1?"":"s"})`)
+      .join(", ")||"no journeys marked to run";
+    const detailKey=[
+      schedule.signature,
+      calendarSummary,
+      schedule.conflicts.length?"conflict":"",
+      schedule.unstated.length?"unstated":""
+    ].join("||");
+    const item=grouped.get(detailKey)||{
+      holidays:[],calendarSummary,
+      conflicts:schedule.conflicts.length,
+      unstated:schedule.unstated.length
+    };
+    item.holidays.push(
+      validatorBankHolidayLabels[schedule.holiday]||schedule.holiday
+    );
+    grouped.set(detailKey,item);
+  });
+  const details=Array.from(grouped.values()).map(item=>{
+    let detail=`${item.holidays.join(", ")} — runs: ${item.calendarSummary}`;
+    if(item.conflicts)detail+=`; ${item.conflicts} journey record(s) say both operates and does not operate`;
+    if(item.unstated)detail+=`; ${item.unstated} journey record(s) have no explicit setting`;
+    return detail;
+  });
+  return "Bank Holiday calendar settings produce different timetables. "+
+    details.join("; ")+". In Remix, check every calendar/service period used by "+
+    "this service has the intended setting for every Bank Holiday, such as No "+
+    "Service or Sunday Service.";
+}
+function organisationRules(profile){
+  const rules=[];
+  const dayType=child(profile,"ServicedOrganisationDayType");
+  if(!dayType)return rules;
+  ["DaysOfOperation","DaysOfNonOperation"].forEach(operationName=>{
+    const operation=child(dayType,operationName);
+    Array.from(operation?.children||[]).forEach(category=>{
+      descendants(category,"ServicedOrganisationRef").forEach(ref=>rules.push({
+        ref:text(ref),category:lname(category),operates:operationName==="DaysOfOperation"
+      }));
+    });
+  });
+  return rules;
+}
+function organisationRulesAreExclusive(left,right){
+  return left.some(a=>right.some(b=>{
+    if(!a.ref||a.ref!==b.ref)return false;
+    if(a.category===b.category)return a.operates!==b.operates;
+    return a.operates&&b.operates&&new Set([a.category,b.category]).has("WorkingDays")&&new Set([a.category,b.category]).has("Holidays");
+  }));
+}
+function journeyOperatingSignature(journey){
+  const profile=child(journey,"OperatingProfile");
+  if(!profile)return{days:new Set,bankHolidays:new Set,rules:[],qualifier:""};
+  const bank=bankHolidaySets(profile);
+  return{
+    days:expandedOperatingDays(profile),
+    bankHolidays:new Set(Array.from(bank.operates).filter(value=>!bank.doesNotOperate.has(value))),
+    rules:organisationRules(profile),
+    qualifier:schoolCalendarQualifier(journey)
+  };
+}
+function operatingProfilesOverlap(left,right){
+  const regularOverlap=Array.from(left.days).some(day=>right.days.has(day));
+  if(regularOverlap){
+    const differentSchoolCalendars=left.qualifier&&right.qualifier&&left.qualifier!==right.qualifier;
+    if(!differentSchoolCalendars&&!organisationRulesAreExclusive(left.rules,right.rules))return true;
+  }
+  return Array.from(left.bankHolidays).some(holiday=>right.bankHolidays.has(holiday));
+}
+const coreCalendarDays=[
+  "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"
+];
+function latestCalendarRangeDate(container){
+  let latest="";
+  children(container,"DateRange").forEach(range=>{
+    const value=dtext(range,"EndDate")||dtext(range,"StartDate");
+    if(/^\d{4}-\d{2}-\d{2}$/.test(value)&&(!latest||value>latest))latest=value;
+  });
+  children(container,"Date").forEach(date=>{
+    const value=text(date);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(value)&&(!latest||value>latest))latest=value;
+  });
+  return latest;
+}
+function coreCalendarCoverageWarning(service,journeys,xml){
+  const period=child(service,"OperatingPeriod");
+  const serviceEnd=period?dtext(period,"EndDate"):"";
+  const organisations=new Map;
+  descendants(xml,"ServicedOrganisation").forEach(organisation=>{
+    const code=dtext(organisation,"OrganisationCode");
+    if(code)organisations.set(code,organisation);
+  });
+  const latestByDay=new Map;
+  journeys.forEach(journey=>{
+    const profile=child(journey,"OperatingProfile");
+    if(!profile||child(child(profile,"RegularDayType"),"HolidaysOnly"))return;
+    const days=expandedOperatingDays(profile);
+    if(!days.size)return;
+    const positiveRules=organisationRules(profile).filter(rule=>rule.operates);
+    let coverageEnd=serviceEnd;
+    if(positiveRules.length){
+      coverageEnd="";
+      for(const rule of positiveRules){
+        const organisation=organisations.get(rule.ref);
+        const rangeContainer=organisation?child(organisation,rule.category):null;
+        const value=latestCalendarRangeDate(rangeContainer);
+        if(!value){coverageEnd="";break}
+        if(!coverageEnd||value>coverageEnd)coverageEnd=value;
+      }
+    }
+    if(!coverageEnd)return;
+    days.forEach(day=>{
+      const current=latestByDay.get(day)||"";
+      if(!current||coverageEnd>current)latestByDay.set(day,coverageEnd);
+    });
+  });
+  if(latestByDay.size<2)return"";
+  const latestOverall=Array.from(latestByDay.values()).sort().at(-1)||"";
+  const latestTime=Date.parse(`${latestOverall}T00:00:00Z`);
+  if(!Number.isFinite(latestTime))return"";
+  const groups=new Map;
+  coreCalendarDays.forEach(day=>{
+    const end=latestByDay.get(day);
+    if(!end)return;
+    const endTime=Date.parse(`${end}T00:00:00Z`);
+    if(!Number.isFinite(endTime)||(latestTime-endTime)/86400000<=8)return;
+    if(!groups.has(end))groups.set(end,[]);
+    groups.get(end).push(day);
+  });
+  if(!groups.size)return"";
+  const label=days=>{
+    const weekdays=coreCalendarDays.slice(0,5);
+    if(weekdays.every(day=>days.includes(day))){
+      return ["Monday-Friday",...days.filter(day=>!weekdays.includes(day))].join(", ");
+    }
+    return days.join(", ");
+  };
+  const details=Array.from(groups.entries()).map(([end,days])=>
+    `${label(days)} coverage ends ${end}`
+  ).join("; ");
+  return `Core calendar coverage differs: ${details}, while other core operating `+
+    `days continue to ${latestOverall}. Check the Standard weekday, Saturday and `+
+    `Sunday calendars/service periods in the source system for missing dates. `+
+    `Bank Holiday and academic calendars are not expected to have matching coverage.`;
+}
 function serviceValidationIssues(service,xml){
   const issues=[];
   const warnings=[];
@@ -119,8 +405,10 @@ function serviceValidationIssues(service,xml){
   const sectionIds=new Set(sectionMap.keys());
   const routeIds=new Set(descendants(xml,"Route")
     .map(route=>route.getAttribute("id")||"").filter(Boolean));
-  const annotatedStops=new Set(descendants(xml,"AnnotatedStopPointRef")
-    .map(stop=>dtext(stop,"StopPointRef")).filter(Boolean));
+  const annotatedStopNames=new Map(descendants(xml,"AnnotatedStopPointRef")
+    .map(stop=>[dtext(stop,"StopPointRef"),dtext(stop,"CommonName")])
+    .filter(([ref])=>ref));
+  const annotatedStops=new Set(annotatedStopNames.keys());
 
   if(!patterns.length){
     issues.push("StandardService has no JourneyPattern records");
@@ -192,6 +480,7 @@ function serviceValidationIssues(service,xml){
     .filter(journey=>dtext(journey,"ServiceRef")===serviceCode);
 
   const journeyCodeGroups=new Map;
+  const journeyCodeMismatchGroups=new Map;
 
   journeys.forEach((journey,index)=>{
     const code=dtext(journey,"VehicleJourneyCode")||
@@ -203,6 +492,63 @@ function serviceValidationIssues(service,xml){
     const journeyCode=ticketMachine?dtext(ticketMachine,"JourneyCode"):"";
     if(missingOrPlaceholder(journeyCode)){
       warnings.push(`${code}: missing Operational/TicketMachine/JourneyCode`);
+    }else{
+      const departureTime=dtext(journey,"DepartureTime");
+      const departureMatch=departureTime.match(/^(\d{1,2}):(\d{2})/);
+      const codeMatch=journeyCode.match(/^(\d{2})(\d{2})$/);
+      if(departureMatch&&codeMatch){
+        const departureHours=Number(departureMatch[1]);
+        const departureMinutes=Number(departureMatch[2]);
+        const codeHours=Number(codeMatch[1]);
+        const codeMinutes=Number(codeMatch[2]);
+        if(departureMinutes<60&&codeHours<24&&codeMinutes<60){
+          const departureValue=(departureHours*60+departureMinutes)%1440;
+          const codeValue=codeHours*60+codeMinutes;
+          const expectedAdjusted=(departureValue+1)%1440;
+          if(codeValue!==departureValue&&codeValue!==expectedAdjusted){
+            const departureLabel=
+              `${String(departureHours).padStart(2,"0")}:`+
+              `${String(departureMinutes).padStart(2,"0")}`;
+            const key=`${journeyCode}|${departureLabel}`;
+            const mismatchPatternRef=dtext(journey,"JourneyPatternRef");
+            const mismatchPattern=patternMap.get(mismatchPatternRef);
+            const mismatchDirection=(
+              dtext(journey,"Direction")||
+              (mismatchPattern?dtext(mismatchPattern,"Direction"):"")||
+              "not stated"
+            ).toLowerCase();
+            const mismatchProfile=child(journey,"OperatingProfile");
+            const mismatchDays=Array.from(expandedOperatingDays(mismatchProfile));
+            const mismatchCalendarType=schoolCalendarQualifier(journey);
+            let routeLabel="route endpoints not available";
+            if(mismatchPattern){
+              const sectionRefs=children(mismatchPattern,"JourneyPatternSectionRefs")
+                .flatMap(item=>text(item).split(/\s+/).filter(Boolean));
+              const links=sectionRefs.flatMap(ref=>{
+                const section=sectionMap.get(ref);
+                return section?children(section,"JourneyPatternTimingLink"):[];
+              });
+              if(links.length){
+                const firstRef=dtext(child(links[0],"From"),"StopPointRef");
+                const lastRef=dtext(child(links.at(-1),"To"),"StopPointRef");
+                const firstName=annotatedStopNames.get(firstRef)||firstRef;
+                const lastName=annotatedStopNames.get(lastRef)||lastRef;
+                if(firstName&&lastName)routeLabel=`${firstName} → ${lastName}`;
+              }
+            }
+            const mismatch=journeyCodeMismatchGroups.get(key)||{
+              journeyCode,departureLabel,journeys:[]
+            };
+            mismatch.journeys.push({
+              direction:mismatchDirection,
+              days:mismatchDays,
+              calendarType:mismatchCalendarType,
+              routeLabel
+            });
+            journeyCodeMismatchGroups.set(key,mismatch);
+          }
+        }
+      }
     }
     const patternRef=dtext(journey,"JourneyPatternRef");
     if(!patternRef){
@@ -224,7 +570,11 @@ function serviceValidationIssues(service,xml){
     if(!missingOrPlaceholder(journeyCode)&&effectiveDirection){
       const key=journeyCode.toLowerCase();
       const group=journeyCodeGroups.get(key)||[];
-      group.push({code,journeyCode,direction:effectiveDirection});
+      group.push({
+        code,journeyCode,direction:effectiveDirection,
+        departureTime:dtext(journey,"DepartureTime"),
+        operatingSignature:journeyOperatingSignature(journey)
+      });
       journeyCodeGroups.set(key,group);
     }
     if(simpleDirections.has(journeyDirection)&&
@@ -237,14 +587,81 @@ function serviceValidationIssues(service,xml){
     }
   });
 
+  journeyCodeMismatchGroups.forEach(mismatch=>{
+    const dayShort={
+      Monday:"M",Tuesday:"Tu",Wednesday:"W",Thursday:"Th",Friday:"F",
+      Saturday:"Sa",Sunday:"Su"
+    };
+    const describe=item=>{
+      const weekdays=["Monday","Tuesday","Wednesday","Thursday","Friday"];
+      const hasWeekdays=weekdays.every(day=>item.days.includes(day));
+      const remaining=hasWeekdays
+        ?item.days.filter(day=>!weekdays.includes(day))
+        :item.days;
+      const days=item.days.length
+        ?[...(hasWeekdays?["M-F"]:[]),...remaining.map(day=>dayShort[day]||day)].join(", ")
+        :"days not stated";
+      const calendarNames={
+        SD:"School Days",SH:"School Holidays",CD:"College Days",
+        CH:"College Holidays",UD:"University Days",UH:"University Holidays"
+      };
+      const calendar=item.calendarType
+        ?`, ${calendarNames[item.calendarType]||item.calendarType}`
+        :"";
+      return `${mismatch.departureLabel} ${item.direction}, ${days}${calendar} — ${item.routeLabel}`;
+    };
+    warnings.push(
+      `JourneyCode ${mismatch.journeyCode} does not match the scheduled `+
+      `departure ${mismatch.departureLabel}. An exact match or a one-minute `+
+      `adjustment would normally be expected; check whether this is intentional. `+
+      `(find it at: ${mismatch.journeys.map(describe).join("; ")})`
+    );
+  });
+
+  const bankHolidayWarning=bankHolidayConsistencyWarning(journeys,serviceCode);
+  if(bankHolidayWarning)warnings.push(bankHolidayWarning);
+  const calendarCoverageWarning=coreCalendarCoverageWarning(service,journeys,xml);
+  if(calendarCoverageWarning)warnings.push(calendarCoverageWarning);
+
   journeyCodeGroups.forEach((group,journeyCode)=>{
     const inbound=group.filter(item=>item.direction==="inbound");
     const outbound=group.filter(item=>item.direction==="outbound");
     if(!inbound.length||!outbound.length)return;
+    const departureMinute=item=>{
+      const match=String(item.departureTime||"").match(/^(\d{1,2}):(\d{2})/);
+      return match?`${match[1].padStart(2,"0")}:${match[2]}`:"";
+    };
+    const conflictingPairs=[];
+    inbound.forEach(inJourney=>outbound.forEach(outJourney=>{
+      const inboundTime=departureMinute(inJourney);
+      const outboundTime=departureMinute(outJourney);
+      if(!inboundTime||inboundTime!==outboundTime)return;
+      if(!operatingProfilesOverlap(
+        inJourney.operatingSignature,
+        outJourney.operatingSignature
+      ))return;
+      conflictingPairs.push([inJourney,outJourney]);
+    }));
+    if(!conflictingPairs.length)return;
+    const conflictingInbound=Array.from(new Set(
+      conflictingPairs.map(pair=>pair[0])
+    ));
+    const conflictingOutbound=Array.from(new Set(
+      conflictingPairs.map(pair=>pair[1])
+    ));
+    const conflictingTimes=Array.from(new Set(
+      conflictingPairs.map(pair=>departureMinute(pair[0]))
+    ));
+    const describe=item=>
+      `${item.departureTime?item.departureTime.slice(0,5)+" ":""}`+
+      `[${item.code}]`;
     warnings.push(
-      `JourneyCode ${group[0].journeyCode} is used in both directions `+
-      `(inbound: ${inbound.map(item=>item.code).join(", ")}; `+
-      `outbound: ${outbound.map(item=>item.code).join(", ")})`
+      `JourneyCode ${group[0].journeyCode} is used by inbound and outbound journeys `+
+      `which both depart at ${conflictingTimes.join(", ")} on the same or overlapping `+
+      `operating days. Give one direction a different JourneyCode if the ticket-machine `+
+      `codes must be unique. `+
+      `(inbound: ${conflictingInbound.map(describe).join(", ")}; `+
+      `outbound: ${conflictingOutbound.map(describe).join(", ")})`
     );
   });
 
