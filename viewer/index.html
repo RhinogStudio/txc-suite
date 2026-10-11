@@ -4,11 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <title>TXC Viewer — View TransXChange Timetables Online</title>
-  <meta name="description" content="Open TransXChange files as readable combined timetables with journey codes and destination information. Private, browser-based and read-only.">
-  <meta name="author" content="Rhinog Studio">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://rhinogstudio.co.uk/txc-suite/viewer/">
+  <title>TXC Viewer</title>
   <style>
     :root {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -402,6 +398,66 @@
       color: #315a78;
       font-size: 10px;
       font-weight: 750;
+    }
+
+    .request-stop-chip {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 1px 6px;
+      border: 1px solid #d39b45;
+      border-radius: 5px;
+      background: #fff4dc;
+      color: #7a4b00;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .stop-note-code {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 1px 5px;
+      border: 1px solid #9b8fc2;
+      border-radius: 5px;
+      background: #f0ecfb;
+      color: #4f3a8a;
+      font-size: 10px;
+      font-weight: 850;
+      line-height: 1.3;
+    }
+
+    .stop-activity-chip {
+      display: inline-block;
+      margin-left: 0.3rem;
+      padding: 0.08rem 0.35rem;
+      border: 1px solid #9b6a1a;
+      border-radius: 999px;
+      background: #fff4d6;
+      color: #67420a;
+      font-size: 0.72em;
+      font-weight: 700;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .timetable-cell-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      min-width: 112px;
+      min-height: 18px;
+    }
+
+    .timetable-cell-time {
+      grid-column: 2;
+      justify-self: center;
+    }
+
+    .timetable-cell-markers {
+      grid-column: 3;
+      justify-self: start;
+      display: inline-flex;
+      align-items: center;
+      margin-left: 4px;
     }
 
     .journey-condition-row {
@@ -896,7 +952,7 @@
 </svg></div>
       <div>
         <h1>TXC Viewer</h1>
-        <p>Offline TXC viewing with combined timetables, journey codes and destination information. · Suite build 2026.09.10.1</p>
+        <p>Offline TXC viewing with combined timetables, journey codes and destination information. · Suite build 2026.10.05.3</p>
       </div>
     </div>
   </header>
@@ -1398,20 +1454,40 @@ function endpointData(endpoint) {
       stopRef: "",
       timingStatus: "",
       activity: "",
+      hasActivity: false,
       waitTime: 0,
       sequenceNumber: "",
-      dynamicDestinationDisplay: ""
+      dynamicDestinationDisplay: "",
+      stopOnlyOnRequest: false,
+      hasStopOnlyOnRequest: false,
+      hasNotes: false,
+      notes: []
     };
   }
+
+  const notesContainer = directChild(endpoint, "Notes");
+  const notes = notesContainer
+    ? directChildren(notesContainer, "Note").map(note => ({
+        code: directText(note, "NoteCode"),
+        text: directText(note, "NoteText"),
+        private: directText(note, "Private").toLowerCase() === "true"
+      })).filter(note => note.code || note.text)
+    : [];
 
   return {
     stopRef: directText(endpoint, "StopPointRef"),
     timingStatus: directText(endpoint, "TimingStatus"),
     activity: directText(endpoint, "Activity"),
+    hasActivity: Boolean(directChild(endpoint, "Activity")),
     waitTime: parseDurationSeconds(directText(endpoint, "WaitTime")),
     sequenceNumber: endpoint.getAttribute("SequenceNumber") || "",
     dynamicDestinationDisplay:
-      directText(endpoint, "DynamicDestinationDisplay")
+      directText(endpoint, "DynamicDestinationDisplay"),
+    stopOnlyOnRequest:
+      directText(endpoint, "StopOnlyOnRequest").toLowerCase() === "true",
+    hasStopOnlyOnRequest: Boolean(directChild(endpoint, "StopOnlyOnRequest")),
+    hasNotes: Boolean(notesContainer),
+    notes
   };
 }
 
@@ -1555,26 +1631,44 @@ function servicedOrganisationConditions(profile, organisations) {
         let label;
         let badgeClass;
         let ranges;
+        const schoolCalendarType = explicitAcademicCalendarType(
+          organisation.code,
+          organisation.name
+        );
 
         if (categoryName === "WorkingDays") {
           ranges = organisation.workingDays;
-          if (operates) {
+          if (schoolCalendarType === "SD" && operates) {
             label = `${organisation.name} working days (school days)`;
             badgeClass = "school-days";
-          } else {
+          } else if (schoolCalendarType === "SD") {
             label =
               `Not ${organisation.name} working days ` +
               `(school holidays/non-school days)`;
             badgeClass = "non-school-days";
+          } else if (schoolCalendarType === "SH" && operates) {
+            label = `${organisation.name} working days (school holidays)`;
+            badgeClass = "non-school-days";
+          } else if (schoolCalendarType === "SH") {
+            label = `Not ${organisation.name} working days`;
+            badgeClass = "school-days";
+          } else {
+            label = `${operates ? "Runs on" : "Does not run on"} ` +
+              `${organisation.name} working days`;
+            badgeClass = "note-code";
           }
         } else if (categoryName === "Holidays") {
           ranges = organisation.holidays;
-          if (operates) {
+          if (schoolCalendarType && operates) {
             label = `${organisation.name} holidays`;
             badgeClass = "non-school-days";
-          } else {
+          } else if (schoolCalendarType) {
             label = `Not ${organisation.name} holidays`;
             badgeClass = "school-days";
+          } else {
+            label = `${operates ? "Runs on" : "Does not run on"} ` +
+              `${organisation.name} holidays`;
+            badgeClass = "note-code";
           }
         } else {
           ranges = [];
@@ -1612,12 +1706,11 @@ function parseJourneyNotes(vehicleJourney) {
 function dayCategoriesFromProfile(
   dayCodes,
   bankHolidayOnly,
-  bankHolidayOperates,
   schooldaysOnly
 ) {
   const categories = new Set();
 
-  if (bankHolidayOnly || bankHolidayOperates) {
+  if (bankHolidayOnly) {
     categories.add("bank-holiday");
   }
 
@@ -1696,6 +1789,8 @@ function parseOperatingProfile(profile, organisations = new Map()) {
       dayCategories: [],
       bankHolidayOnly: false,
       bankHolidayOperates: false,
+      bankHolidayDaysOfOperation: [],
+      bankHolidayDaysOfNonOperation: [],
       schooldaysOnly: false
     };
   }
@@ -1737,6 +1832,8 @@ function parseOperatingProfile(profile, organisations = new Map()) {
 
   const exceptions = [];
   let bankHolidayOperates = false;
+  const bankHolidayDaysOfOperation = [];
+  const bankHolidayDaysOfNonOperation = [];
 
   const special = directChild(profile, "SpecialDaysOperation");
   if (special) {
@@ -1780,6 +1877,9 @@ function parseOperatingProfile(profile, organisations = new Map()) {
       if (holidays.length) {
         if (operationName === "DaysOfOperation") {
           bankHolidayOperates = true;
+          bankHolidayDaysOfOperation.push(...holidays);
+        } else {
+          bankHolidayDaysOfNonOperation.push(...holidays);
         }
 
         exceptions.push(
@@ -1793,7 +1893,6 @@ function parseOperatingProfile(profile, organisations = new Map()) {
   const dayCategories = dayCategoriesFromProfile(
     dayCodes,
     bankHolidayOnly,
-    bankHolidayOperates,
     schooldaysOnly
   );
 
@@ -1812,8 +1911,111 @@ function parseOperatingProfile(profile, organisations = new Map()) {
     dayCategories,
     bankHolidayOnly,
     bankHolidayOperates,
+    bankHolidayDaysOfOperation: Array.from(
+      new Set(bankHolidayDaysOfOperation)
+    ),
+    bankHolidayDaysOfNonOperation: Array.from(
+      new Set(bankHolidayDaysOfNonOperation)
+    ),
     schooldaysOnly
   };
+}
+
+const CORE_WEEKDAYS = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+  "Saturday", "Sunday"
+];
+
+function expandedCoreWeekdays(dayCodes) {
+  const result = new Set();
+  const add = days => days.forEach(day => result.add(day));
+
+  for (const code of dayCodes || []) {
+    if (CORE_WEEKDAYS.includes(code)) result.add(code);
+    else if (code === "MondayToFriday") add(CORE_WEEKDAYS.slice(0, 5));
+    else if (code === "MondayToSaturday") add(CORE_WEEKDAYS.slice(0, 6));
+    else if (code === "MondayToSunday") add(CORE_WEEKDAYS);
+    else if (code === "Weekend") add(["Saturday", "Sunday"]);
+    else if (code.startsWith("Not")) {
+      const excluded = code.slice(3);
+      add(CORE_WEEKDAYS.filter(day => day !== excluded));
+    }
+  }
+
+  return Array.from(result);
+}
+
+function latestRangeDate(ranges) {
+  return (ranges || []).reduce((latest, range) => {
+    const value = range?.end || range?.start || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) && (!latest || value > latest)
+      ? value
+      : latest;
+  }, "");
+}
+
+function journeyCoreCoverageEnd(journey, serviceEnd) {
+  const positiveConditions = (journey.profile?.organisationConditions || [])
+    .filter(condition => condition.operates);
+
+  if (!positiveConditions.length) return serviceEnd || "";
+  if (positiveConditions.some(condition => !(condition.ranges || []).length)) {
+    return "";
+  }
+
+  return positiveConditions.reduce((latest, condition) => {
+    const value = latestRangeDate(condition.ranges);
+    return value && (!latest || value > latest) ? value : latest;
+  }, "");
+}
+
+function coreCalendarCoverageWarnings(journeys, serviceEnd) {
+  const latestByDay = new Map();
+
+  for (const journey of journeys || []) {
+    if (journey.profile?.bankHolidayOnly) continue;
+    const days = expandedCoreWeekdays(journey.profile?.dayCodes || []);
+    if (!days.length) continue;
+    const coverageEnd = journeyCoreCoverageEnd(journey, serviceEnd);
+    if (!coverageEnd) continue;
+    for (const day of days) {
+      const current = latestByDay.get(day) || "";
+      if (!current || coverageEnd > current) latestByDay.set(day, coverageEnd);
+    }
+  }
+
+  if (latestByDay.size < 2) return [];
+  const latestOverall = Array.from(latestByDay.values()).sort().at(-1) || "";
+  const latestTime = Date.parse(`${latestOverall}T00:00:00Z`);
+  if (!Number.isFinite(latestTime)) return [];
+
+  const earlyGroups = new Map();
+  for (const day of CORE_WEEKDAYS) {
+    const end = latestByDay.get(day);
+    if (!end) continue;
+    const endTime = Date.parse(`${end}T00:00:00Z`);
+    if (!Number.isFinite(endTime)) continue;
+    if ((latestTime - endTime) / 86400000 <= 8) continue;
+    if (!earlyGroups.has(end)) earlyGroups.set(end, []);
+    earlyGroups.get(end).push(day);
+  }
+
+  const dayLabel = days => {
+    const weekdays = CORE_WEEKDAYS.slice(0, 5);
+    if (weekdays.every(day => days.includes(day))) {
+      const remainder = days.filter(day => !weekdays.includes(day));
+      return ["Monday-Friday", ...remainder].join(", ");
+    }
+    return days.join(", ");
+  };
+
+  return Array.from(earlyGroups.entries()).map(([end, days]) =>
+    `${dayLabel(days)} calendar coverage ends ${end}, while other core operating ` +
+    `days continue to ${latestOverall}. Check the Standard weekday, Saturday and ` +
+    `Sunday calendars/service periods in the source system; dates may be missing ` +
+    `after ${end}. Bank Holiday and academic calendars are not expected to match ` +
+    `these core dates.`
+  );
 }
 
 function profileDateEnvelope(profile) {
@@ -1926,7 +2128,9 @@ function parseVehicleJourneyOverrides(vehicleJourney) {
       toDynamicDestinationDisplay:
         to && directChild(to, "DynamicDestinationDisplay")
           ? directText(to, "DynamicDestinationDisplay")
-          : null
+          : null,
+      fromStopUsage: from ? endpointData(from) : null,
+      toStopUsage: to ? endpointData(to) : null
     });
   }
 
@@ -2035,15 +2239,34 @@ function buildPattern(sectionRefs, sections, stopMap, warnings) {
       name: stop?.name || endpoint.stopRef || "Unknown stop",
       timingStatus: endpoint.timingStatus,
       activity: endpoint.activity,
+      stopOnlyOnRequest: endpoint.stopOnlyOnRequest,
+      notes: [...(endpoint.notes || [])],
       latitude: stop?.latitude || "",
       longitude: stop?.longitude || ""
     };
+  }
+
+  function mergeEndpointIntoStop(stop, endpoint) {
+    if (!stop || !endpoint) return;
+    if (endpoint.activity) stop.activity = endpoint.activity;
+    stop.stopOnlyOnRequest ||= Boolean(endpoint.stopOnlyOnRequest);
+    for (const note of endpoint.notes || []) {
+      if (!stop.notes.some(item =>
+        item.code === note.code && item.text === note.text
+      )) {
+        stop.notes.push(note);
+      }
+    }
   }
 
   stops.push(makeStop(links[0].from));
 
   for (let index = 0; index < links.length; index++) {
     const link = links[index];
+
+    if (stops[stops.length - 1]?.ref === link.from.stopRef) {
+      mergeEndpointIntoStop(stops[stops.length - 1], link.from);
+    }
 
     if (
       index > 0 &&
@@ -2199,6 +2422,8 @@ function parseServicesFromDocument(documentRecord) {
       startDate,
       endDate
     );
+
+    warnings.push(...coreCalendarCoverageWarnings(journeys, endDate));
 
     for (const journey of journeys) {
       if (!journey.journeyPatternRef) {
@@ -2363,8 +2588,28 @@ const SIMPLE_DAY_TYPES = [
   { key: "weekday", label: "Monday to Friday" },
   { key: "saturday", label: "Saturday" },
   { key: "sunday", label: "Sunday" },
-  { key: "bank-holiday", label: "Bank Holiday" }
+  { key: "bank-holiday", label: "Bank Holidays" }
 ];
+
+const GENERAL_BANK_HOLIDAYS = [
+  "NewYearsDay",
+  "NewYearsDayHoliday",
+  "GoodFriday",
+  "EasterMonday",
+  "MayDay",
+  "SpringBank",
+  "LateSummerBankHolidayNotScotland"
+];
+
+const BANK_HOLIDAY_LABELS = {
+  NewYearsDay: "New Year's Day",
+  NewYearsDayHoliday: "New Year's Day substitute holiday",
+  GoodFriday: "Good Friday",
+  EasterMonday: "Easter Monday",
+  MayDay: "May Day",
+  SpringBank: "Spring Bank Holiday",
+  LateSummerBankHolidayNotScotland: "Late Summer Bank Holiday"
+};
 
 function journeyPatternFor(service, journey) {
   return service.patterns.find(
@@ -2421,10 +2666,337 @@ function journeysForPeriod(service) {
   return service.journeys.filter(journey => period.journeyIds.has(journey.id));
 }
 
+function sameJourneySet(first, second) {
+  if (first.length !== second.length) return false;
+  const secondIds = new Set(second.map(journey => journey.id));
+  return first.every(journey => secondIds.has(journey.id));
+}
+
+function bankHolidayAnalysis(service) {
+  const periodJourneys = journeysForPeriod(service);
+  const holidayOnlyJourneys = periodJourneys.filter(
+    journey => journey.profile.bankHolidayOnly
+  );
+  const sundayJourneys = periodJourneys.filter(
+    journey => journey.profile.dayCategories.includes("sunday")
+  );
+
+  if (holidayOnlyJourneys.length) {
+    const otherJourneys = periodJourneys.filter(
+      journey => !journey.profile.bankHolidayOnly
+    );
+    const conflictingHolidays = [];
+    const unconfiguredHolidays = [];
+    const dedicatedConflicts = [];
+    const explicitlyDedicatedHolidays = new Set(
+      holidayOnlyJourneys.flatMap(
+        journey => journey.profile.bankHolidayDaysOfOperation
+      )
+    );
+    const holidaysToCheck = explicitlyDedicatedHolidays.size
+      ? GENERAL_BANK_HOLIDAYS.filter(holiday =>
+          explicitlyDedicatedHolidays.has(holiday)
+        )
+      : GENERAL_BANK_HOLIDAYS;
+
+    for (const holiday of holidaysToCheck) {
+      if (otherJourneys.some(journey =>
+        journey.profile.bankHolidayDaysOfOperation.includes(holiday)
+      )) {
+        conflictingHolidays.push(BANK_HOLIDAY_LABELS[holiday] || holiday);
+      }
+
+      if (otherJourneys.some(journey =>
+        !journey.profile.bankHolidayDaysOfOperation.includes(holiday) &&
+        !journey.profile.bankHolidayDaysOfNonOperation.includes(holiday)
+      )) {
+        unconfiguredHolidays.push(BANK_HOLIDAY_LABELS[holiday] || holiday);
+      }
+
+      if (holidayOnlyJourneys.some(journey =>
+        journey.profile.bankHolidayDaysOfNonOperation.includes(holiday)
+      )) {
+        dedicatedConflicts.push(BANK_HOLIDAY_LABELS[holiday] || holiday);
+      }
+    }
+
+    const warningParts = [];
+    if (conflictingHolidays.length) {
+      warningParts.push(
+        `Non-Bank-Holiday calendars also contain journeys marked to run on: ${conflictingHolidays.join(", ")}`
+      );
+    }
+    if (unconfiguredHolidays.length) {
+      warningParts.push(
+        `one or more non-Bank-Holiday calendars have no explicit setting for: ${unconfiguredHolidays.join(", ")}`
+      );
+    }
+    if (dedicatedConflicts.length) {
+      warningParts.push(
+        `a Bank-Holidays-only journey is also marked not to run on: ${dedicatedConflicts.join(", ")}`
+      );
+    }
+
+    return {
+      valid: true,
+      journeys: holidayOnlyJourneys,
+      matchesSunday: sameJourneySet(holidayOnlyJourneys, sundayJourneys),
+      warning: warningParts.length
+        ? "A dedicated Bank Holiday timetable exists and is being shown, but " +
+          warningParts.join("; ") +
+          ". In Remix, the dedicated Bank Holiday calendar should normally be the only calendar operating on these holidays, and every Standard, School, College or University calendar should explicitly be set to No Service."
+        : ""
+    };
+  }
+
+  const representedHolidays = GENERAL_BANK_HOLIDAYS.filter(holiday =>
+    periodJourneys.some(journey =>
+      journey.profile.bankHolidayDaysOfOperation.includes(holiday) ||
+      journey.profile.bankHolidayDaysOfNonOperation.includes(holiday)
+    )
+  );
+
+  const conflicts = representedHolidays.filter(holiday =>
+    periodJourneys.some(journey =>
+      journey.profile.bankHolidayDaysOfOperation.includes(holiday) &&
+      journey.profile.bankHolidayDaysOfNonOperation.includes(holiday)
+    )
+  );
+
+  const sets = representedHolidays.map(holiday => ({
+    holiday,
+    journeys: periodJourneys.filter(journey =>
+      journey.profile.bankHolidayDaysOfOperation.includes(holiday)
+    )
+  }));
+  const operatingSets = sets.filter(item => item.journeys.length);
+
+  if (!operatingSets.length) {
+    return { valid: false, journeys: [], matchesSunday: false, warning: "" };
+  }
+
+  const reference = operatingSets[0].journeys;
+  const differentSets = operatingSets.filter(
+    item => !sameJourneySet(reference, item.journeys)
+  );
+  const noServiceHolidays = sets.filter(item => !item.journeys.length);
+
+  if (conflicts.length || differentSets.length || noServiceHolidays.length) {
+    return {
+      valid: false,
+      journeys: [],
+      matchesSunday: false,
+      warning:
+        "Bank Holiday schedules differ between the calendars or service periods used by this service. In Remix, every Bank Holiday must be set separately on every calendar used by the service, for example as No Service or Sunday Service. Please check each Standard, School, College or University calendar because one may be missing a Bank Holiday setting. The Viewer cannot safely combine the current results into one Bank Holiday timetable."
+    };
+  }
+
+  return {
+    valid: true,
+    journeys: reference,
+    matchesSunday: sameJourneySet(reference, sundayJourneys),
+    warning: ""
+  };
+}
+
 function journeysForDay(service, dayType) {
+  if (dayType === "bank-holiday") {
+    const analysis = bankHolidayAnalysis(service);
+    return analysis.valid && !analysis.matchesSunday
+      ? analysis.journeys
+      : [];
+  }
   return journeysForPeriod(service).filter(
     journey => journey.profile.dayCategories.includes(dayType)
   );
+}
+
+const WEEKDAY_NAMES = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+];
+
+function regularWeekdays(profile) {
+  const codes = new Set(profile.dayCodes || []);
+  const days = new Set();
+  const add = values => values.forEach(value => days.add(value));
+
+  for (const day of WEEKDAY_NAMES) {
+    if (codes.has(day)) days.add(day);
+  }
+  if (
+    codes.has("MondayToFriday") ||
+    codes.has("MondayToSaturday") ||
+    codes.has("MondayToSunday")
+  ) {
+    add(WEEKDAY_NAMES);
+  }
+  for (const code of codes) {
+    if (!code.startsWith("Not")) continue;
+    const excluded = code.slice(3);
+    add(WEEKDAY_NAMES.filter(day => day !== excluded));
+  }
+  if (profile.schooldaysOnly && !days.size) add(WEEKDAY_NAMES);
+  return days;
+}
+
+function academicCalendarFamily(journey) {
+  const qualifier = journeySchoolQualifierInfo(journey)?.code || "";
+  const normalise = value => String(value || "")
+    .replace(/(?:[-_](?:Mo[-_]?Th|Mon[-_]?Thu|Monday[-_]?Thursday|Fr|Fri|Friday))$/i, "")
+    .replaceAll("_", " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  const calendars = journey.profile.organisationConditions
+    .map(condition => normalise(condition.code || condition.organisationName))
+    .filter(Boolean);
+  return `${qualifier}|${Array.from(new Set(calendars)).sort().join("|")}`;
+}
+
+function journeyDisplayMergeKey(service, journey) {
+  const overrides = Array.from(journey.overrides.entries())
+    .sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify({
+    journeyPatternRef: journey.journeyPatternRef,
+    departureTime: journey.departureTime,
+    ticketMachineJourneyCode: journey.ticketMachineJourneyCode,
+    destinationDisplay: journey.destinationDisplay,
+    endShortWorkingRef: journey.endShortWorkingRef,
+    direction: journeyDirectionFor(service, journey),
+    academicCalendar: academicCalendarFamily(journey),
+    notes: journey.notes,
+    overrides
+  });
+}
+
+function setsOverlap(left, right) {
+  return Array.from(left).some(value => right.has(value));
+}
+
+function mergeJourneyDisplayGroup(group) {
+  if (group.length === 1) {
+    return {
+      ...group[0],
+      sourceJourneyCodes: [group[0].code],
+      sourceJourneyCount: 1
+    };
+  }
+
+  const first = group[0];
+  const mergedWeekdays = WEEKDAY_NAMES.filter(day =>
+    group.some(journey => regularWeekdays(journey.profile).has(day))
+  );
+  const dayCodes = mergedWeekdays.length === WEEKDAY_NAMES.length
+    ? ["MondayToFriday"]
+    : mergedWeekdays;
+  const organisationConditions = [];
+  const conditionKeys = new Set();
+  for (const journey of group) {
+    for (const condition of journey.profile.organisationConditions) {
+      const key = JSON.stringify(condition);
+      if (!conditionKeys.has(key)) {
+        conditionKeys.add(key);
+        organisationConditions.push(condition);
+      }
+    }
+  }
+  const exceptions = Array.from(new Set(
+    group.flatMap(journey => journey.profile.exceptions || [])
+  ));
+  const bankHolidayDaysOfOperation = Array.from(new Set(
+    group.flatMap(journey =>
+      journey.profile.bankHolidayDaysOfOperation || []
+    )
+  ));
+  const bankHolidayDaysOfNonOperation = Array.from(new Set(
+    group.flatMap(journey =>
+      journey.profile.bankHolidayDaysOfNonOperation || []
+    )
+  ));
+  const profile = {
+    ...first.profile,
+    dayCodes,
+    dayCategories: dayCategoriesFromProfile(
+      dayCodes,
+      first.profile.bankHolidayOnly,
+      first.profile.schooldaysOnly
+    ),
+    organisationConditions,
+    exceptions,
+    bankHolidayDaysOfOperation,
+    bankHolidayDaysOfNonOperation
+  };
+  profile.label = compactOperatingDays(profile);
+  profile.key = `${profile.label}||display-merged`;
+
+  return {
+    ...first,
+    id: group.map(journey => journey.id).join("+"),
+    effectiveStart: group.map(journey => journey.effectiveStart)
+      .filter(Boolean).sort()[0] || first.effectiveStart,
+    effectiveEnd: group.map(journey => journey.effectiveEnd)
+      .filter(Boolean).sort().at(-1) || first.effectiveEnd,
+    profile,
+    sourceJourneyCodes: group.map(journey => journey.code),
+    sourceJourneyCount: group.length
+  };
+}
+
+function mergeEquivalentWeekdayJourneys(service, journeys, dayType) {
+  if (dayType !== "weekday") {
+    return journeys.map(journey => ({
+      ...journey,
+      sourceJourneyCodes: [journey.code],
+      sourceJourneyCount: 1
+    }));
+  }
+
+  const keyed = new Map();
+  for (const journey of journeys) {
+    const key = journeyDisplayMergeKey(service, journey);
+    if (!keyed.has(key)) keyed.set(key, []);
+    keyed.get(key).push(journey);
+  }
+
+  const result = [];
+  for (const candidates of keyed.values()) {
+    const groups = [];
+    for (const journey of candidates) {
+      const days = regularWeekdays(journey.profile);
+      const available = groups.find(group => !setsOverlap(group.days, days));
+      if (available) {
+        available.journeys.push(journey);
+        days.forEach(day => available.days.add(day));
+      } else {
+        groups.push({ journeys: [journey], days: new Set(days) });
+      }
+    }
+    result.push(...groups.map(group => mergeJourneyDisplayGroup(group.journeys)));
+  }
+  return result;
+}
+
+function availableDayTypes(service) {
+  const periodJourneys = journeysForPeriod(service);
+  const bankHoliday = bankHolidayAnalysis(service);
+  const types = SIMPLE_DAY_TYPES
+    .filter(day => day.key !== "bank-holiday")
+    .filter(day => periodJourneys.some(
+      journey => journey.profile.dayCategories.includes(day.key)
+    ))
+    .map(day => ({
+      ...day,
+      label:
+        day.key === "sunday" && bankHoliday.valid && bankHoliday.matchesSunday
+          ? "Sundays & Bank Holidays"
+          : day.label
+    }));
+
+  if (bankHoliday.valid && !bankHoliday.matchesSunday) {
+    types.push({ key: "bank-holiday", label: "Bank Holidays" });
+  }
+
+  return types;
 }
 
 function refreshProfileOptions() {
@@ -2434,8 +3006,11 @@ function refreshProfileOptions() {
 
   let firstAvailable = "";
 
-  for (const dayType of SIMPLE_DAY_TYPES) {
-    const available = journeysForDay(service, dayType.key).length > 0;
+  for (const dayType of availableDayTypes(service)) {
+    const available = journeysForDay(service, dayType.key).length > 0 ||
+      (dayType.key === "sunday" && journeysForPeriod(service).some(
+        journey => journey.profile.dayCategories.includes("sunday")
+      ));
     const option = document.createElement("option");
     option.value = dayType.key;
     option.textContent = dayType.label;
@@ -2738,6 +3313,11 @@ function renderSummary(service) {
     : sourcePeriod;
   const periodCount = service.timetablePeriods.length;
   const selectedJourneyCount = journeysForPeriod(service).length;
+  const bankHolidayWarning = bankHolidayAnalysis(service).warning;
+  const viewerWarnings = Array.from(new Set([
+    ...service.warnings,
+    ...(bankHolidayWarning ? [bankHolidayWarning] : [])
+  ]));
 
   const periodDoesNotOverlap = Boolean(
     selectedPeriod && service.startDate && selectedPeriod.end &&
@@ -2752,12 +3332,12 @@ function renderSummary(service) {
       `the service operating period; it does not rewrite school, holiday or journey calendars.</li></ul></div>`
     : "";
 
-  const warningHtml = service.warnings.length
+  const warningHtml = viewerWarnings.length
     ? `
       <div class="warnings">
         <strong>Viewer warnings</strong>
         <ul>
-          ${service.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join("")}
+          ${viewerWarnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join("")}
         </ul>
       </div>
     `
@@ -2783,8 +3363,8 @@ function renderSummary(service) {
           ${escapeHtml(service.description || "No description supplied")}
         </div>
       </div>
-      <span class="badge ${service.warnings.length ? "amber" : "green"}">
-        ${service.warnings.length ? `${service.warnings.length} warning(s)` : "Parsed successfully"}
+      <span class="badge ${viewerWarnings.length ? "amber" : "green"}">
+        ${viewerWarnings.length ? `${viewerWarnings.length} warning(s)` : "Parsed successfully"}
       </span>
     </div>
 
@@ -2882,14 +3462,17 @@ function renderPattern(pattern, patternIndex) {
           journey.departureTime.slice(0, 5)
         )}</div>`;
 
-    const conditionBadges = journey.profile.organisationConditions.map(
-      condition => `
+    const schoolQualifier = journeySchoolQualifierInfo(journey);
+    const conditionBadges = schoolQualifier
+      ? [`
         <span
-          class="journey-condition-badge ${escapeHtml(condition.badgeClass)}"
-          title="${escapeHtml(condition.label)}"
-        >${escapeHtml(condition.code)}</span>
-      `
-    );
+          class="journey-condition-badge ${escapeHtml(
+            academicBadgeClass(schoolQualifier.code)
+          )}"
+          title="${escapeHtml(schoolQualifier.title)}"
+        >${escapeHtml(schoolQualifier.code)}</span>
+      `]
+      : [];
 
     const noteBadges = journey.notes
       .filter(note => note.code)
@@ -2902,11 +3485,9 @@ function renderPattern(pattern, patternIndex) {
 
     const badges = [...conditionBadges, ...noteBadges].join("");
 
-    const conditionLabel = journey.profile.organisationConditions
-      .map(condition =>
-        condition.operates ? "School days" : "Non-school days"
-      )
-      .join(" · ");
+    const conditionLabel = schoolQualifier
+      ? academicCodeLabel(schoolQualifier.code)
+      : "";
 
     const titleParts = [
       machineCode
@@ -2919,7 +3500,10 @@ function renderPattern(pattern, patternIndex) {
         note => `${note.code || "Note"}: ${note.text || ""}`
       ),
       `Departure: ${journey.departureTime}`,
-      `TXC VehicleJourneyCode: ${journey.code}`
+      `${journey.sourceJourneyCodes?.length > 1
+        ? "TXC VehicleJourneyCodes"
+        : "TXC VehicleJourneyCode"}: ` +
+        `${(journey.sourceJourneyCodes || [journey.code]).join("; ")}`
     ];
 
     return `
@@ -2927,9 +3511,7 @@ function renderPattern(pattern, patternIndex) {
         ${badges ? `<div class="journey-condition-row">${badges}</div>` : ""}
         ${conditionLabel
           ? `<div class="journey-condition-label" title="${escapeHtml(
-              journey.profile.organisationConditions
-                .map(condition => condition.label)
-                .join("; ")
+              schoolQualifier.title
             )}">${escapeHtml(conditionLabel)}</div>`
           : ""}
         <div class="journey-code-label">
@@ -2944,19 +3526,28 @@ function renderPattern(pattern, patternIndex) {
   }).join("");
 
   const bodyRows = visibleIndexes.map(({ stop, index }) => {
-    const timeCells = tripTimes.map(({ times }) => `
-      <td>${times[index] === undefined ? "—" : formatClock(times[index])}</td>
+    const requestInfos = tripTimes.map(({ journey }) =>
+      stopRequestInfo(pattern, journey, index)
+    );
+    const timeCells = tripTimes.map(({ times }, tripIndex) => `
+      <td>${timetableCellHtml(
+        times[index] === undefined ? null : times[index],
+        requestInfos[tripIndex]
+      )}</td>
     `).join("");
 
     const timing = stopIsTimingPoint(stop);
     const timingChip = timing
       ? `<span class="timing-chip" title="${escapeHtml(TIMING_LABELS[stop.timingStatus] || stop.timingStatus)}">${escapeHtml(stop.timingStatus)}</span>`
       : "";
+    const requestChip = requestInfos.some(info => info.requestOnly)
+      ? `<span class="request-stop-chip" title="At least one displayed journey marks this stop as StopOnlyOnRequest">Request stop</span>`
+      : "";
 
     return `
       <tr class="${timing ? "timing-point" : ""}">
         <td class="stop-column">
-          <span class="stop-name">${escapeHtml(stop.name)}</span>${timingChip}
+          <span class="stop-name">${escapeHtml(stop.name)}</span>${timingChip}${requestChip}
           <span class="stop-code">${escapeHtml(stop.ref || "")}</span>
         </td>
         ${timeCells}
@@ -2970,7 +3561,7 @@ function renderPattern(pattern, patternIndex) {
   const codeLegendHtml = codeLegend.length
     ? `
       <div class="exception-panel">
-        <strong>Journey and school-calendar code legend</strong>
+        <strong>Journey and academic-calendar code legend</strong>
         <ul>
           ${codeLegend.map(item =>
             `<li><strong>${escapeHtml(item.code)}</strong> — ` +
@@ -3217,6 +3808,170 @@ function timetableCellTime(timing, timeType) {
   return timing.departure ?? timing.arrival;
 }
 
+function stopRequestInfo(pattern, journey, stopIndex) {
+  const patternStop = pattern?.stops?.[stopIndex];
+  if (!patternStop) {
+    return { requestOnly: false, notes: [], codes: [], activities: [] };
+  }
+  if (journey.endShortWorkingRef) {
+    const endLinkIndex = pattern.links.findIndex(
+      link => link.id === journey.endShortWorkingRef
+    );
+    if (endLinkIndex >= 0 && stopIndex > endLinkIndex + 1) {
+      return { requestOnly: false, notes: [], codes: [], activities: [] };
+    }
+  }
+
+  let requestOnly = false;
+  let notes = [];
+  let activities = [];
+  let hasActivityOverride = false;
+
+  const patternUsages = [];
+  if (stopIndex > 0) {
+    const incoming = pattern.links[stopIndex - 1];
+    if (incoming?.to) patternUsages.push(incoming.to);
+  }
+  if (stopIndex < pattern.links.length) {
+    const outgoing = pattern.links[stopIndex];
+    if (outgoing?.from) patternUsages.push(outgoing.from);
+  }
+
+  for (const usage of patternUsages) {
+    if (usage.stopOnlyOnRequest) requestOnly = true;
+    for (const note of usage.notes || []) {
+      if (!note.private && !notes.some(item =>
+        item.code === note.code && item.text === note.text
+      )) {
+        notes.push(note);
+      }
+    }
+    if (usage.activity) activities.push(usage.activity);
+  }
+
+  const usages = [];
+  if (stopIndex > 0) {
+    const incoming = pattern.links[stopIndex - 1];
+    const override = incoming ? journey.overrides.get(incoming.id) : null;
+    if (override?.toStopUsage) usages.push(override.toStopUsage);
+  }
+  if (stopIndex < pattern.links.length) {
+    const outgoing = pattern.links[stopIndex];
+    const override = outgoing ? journey.overrides.get(outgoing.id) : null;
+    if (override?.fromStopUsage) usages.push(override.fromStopUsage);
+  }
+
+  for (const usage of usages) {
+    if (usage.hasStopOnlyOnRequest) {
+      requestOnly = usage.stopOnlyOnRequest;
+    }
+    if (usage.hasNotes) {
+      notes = usage.notes.filter(note => !note.private);
+    }
+    if (usage.hasActivity) {
+      if (!hasActivityOverride) activities = [];
+      hasActivityOverride = true;
+      if (usage.activity) activities.push(usage.activity);
+    }
+  }
+
+  notes = notes.filter((note, index, items) =>
+    items.findIndex(item =>
+      item.code === note.code && item.text === note.text
+    ) === index
+  );
+
+  return {
+    requestOnly,
+    notes,
+    codes: Array.from(new Set(notes.map(note => note.code).filter(Boolean))),
+    activities: Array.from(new Set(activities.filter(Boolean)))
+  };
+}
+
+function combinedStopRequestInfo(combined, pattern, journey, masterIndex) {
+  const positions = combined.alignmentByPattern.get(pattern.id) || [];
+  const stopIndex = positions.indexOf(masterIndex);
+  return stopIndex < 0
+    ? { requestOnly: false, notes: [], codes: [], activities: [] }
+    : stopRequestInfo(pattern, journey, stopIndex);
+}
+
+function activityDisplay(activity) {
+  if (activity === "pickUp") return { short: "P", full: "Pick up only" };
+  if (activity === "setDown") return { short: "S", full: "Set down only" };
+  return null;
+}
+
+function timetableCellHtml(value, requestInfo) {
+  const time = value === null || value === undefined ? "" : formatClock(value);
+  const codes = requestInfo.codes.map(code => `
+    <span class="stop-note-code" title="${escapeHtml(
+      requestInfo.notes
+        .filter(note => note.code === code)
+        .map(note => note.text)
+        .filter(Boolean)
+        .join("; ") || code
+    )}">${escapeHtml(code)}</span>
+  `).join("");
+  const activities = (requestInfo.activities || [])
+    .map(activity => ({ raw: activity, display: activityDisplay(activity) }))
+    .filter(item => item.display)
+    .map(item => `<span class="stop-activity-chip" title="${escapeHtml(item.display.full)} — TXC Activity: ${escapeHtml(item.raw)}">${escapeHtml(item.display.short)}</span>`)
+    .join("");
+  return `<span class="timetable-cell-content"><span class="timetable-cell-time">${time}</span><span class="timetable-cell-markers">${codes}${activities}</span></span>`;
+}
+
+function plainTimetableCell(value, requestInfo) {
+  const parts = [];
+  if (value !== null && value !== undefined) parts.push(plainClock(value));
+  parts.push(...requestInfo.codes);
+  for (const activity of requestInfo.activities || []) {
+    const display = activityDisplay(activity);
+    if (display) parts.push(display.short);
+  }
+  return parts.join(" ");
+}
+
+function stopRequestLegendEntries(combined, tripTimes) {
+  const entries = new Map();
+  for (const { journey, pattern } of tripTimes) {
+    combined.rows.forEach((stop, masterIndex) => {
+      const info = combinedStopRequestInfo(
+        combined,
+        pattern,
+        journey,
+        masterIndex
+      );
+      for (const note of info.notes) {
+        const key = `${stop.ref}\u0000${note.code}\u0000${note.text}`;
+        if (!entries.has(key)) {
+          entries.set(key, {
+            stopName: stop.name,
+            stopRef: stop.ref,
+            code: note.code,
+            text: note.text,
+            requestOnly: info.requestOnly
+          });
+        }
+      }
+      if (info.requestOnly && !info.notes.length) {
+        const key = `${stop.ref}\u0000request-only`;
+        if (!entries.has(key)) {
+          entries.set(key, {
+            stopName: stop.name,
+            stopRef: stop.ref,
+            code: "",
+            text: "StopOnlyOnRequest is true; no public note code or text was supplied.",
+            requestOnly: true
+          });
+        }
+      }
+    });
+  }
+  return Array.from(entries.values());
+}
+
 function schoolDisplayBadge(condition) {
   if (condition.category === "WorkingDays") {
     return condition.operates ? "SD" : "SH";
@@ -3227,6 +3982,106 @@ function schoolDisplayBadge(condition) {
   }
 
   return condition.operates ? "SD" : "SH";
+}
+
+function explicitAcademicCalendarType(...values) {
+  for (const value of values) {
+    const normal = String(value || "")
+      .replaceAll("_", " ")
+      .replaceAll("-", " ");
+    if (/(?:^|\s)UH(?:\s|$)|(?:university|uni)\s*holidays?|non\s*(?:university|uni)/i.test(normal)) {
+      return "UH";
+    }
+    if (/(?:^|\s)UD(?:\s|$)|(?:university|uni)\s*days?/i.test(normal)) {
+      return "UD";
+    }
+    if (/(?:^|\s)CH(?:\s|$)|college\s*holidays?|non\s*college/i.test(normal)) {
+      return "CH";
+    }
+    if (/(?:^|\s)CD(?:\s|$)|college\s*days?/i.test(normal)) {
+      return "CD";
+    }
+    if (/(?:^|\s)SH(?:\s|$)|school\s*holidays?|non\s*school/i.test(normal)) {
+      return "SH";
+    }
+    if (/(?:^|\s)SD(?:\s|$)|school\s*days?|schooldays?/i.test(normal)) {
+      return "SD";
+    }
+  }
+  return "";
+}
+
+const ACADEMIC_CODE_LABELS = {
+  SD: "School days",
+  SH: "School holidays",
+  CD: "College days",
+  CH: "College holidays",
+  UD: "University days",
+  UH: "University holidays"
+};
+
+function academicCodeLabel(code) {
+  return ACADEMIC_CODE_LABELS[code] || code;
+}
+
+function academicBadgeClass(code) {
+  return /D$/.test(code) ? "school-days" : "non-school-days";
+}
+
+function oppositeAcademicCode(code) {
+  return code.endsWith("D") ? `${code.slice(0, -1)}H` : `${code.slice(0, -1)}D`;
+}
+
+function academicCodeForCondition(calendarType, condition) {
+  const inverse = oppositeAcademicCode(calendarType);
+  if (condition.category === "WorkingDays") {
+    return condition.operates ? calendarType : inverse;
+  }
+  if (condition.category === "Holidays") {
+    return condition.operates ? inverse : calendarType;
+  }
+  return calendarType;
+}
+
+function journeySchoolQualifierInfo(journey) {
+  if (journey.profile.schooldaysOnly) {
+    return {
+      code: "SD",
+      title: "School days only (TXC SchooldaysOnly)",
+      condition: null
+    };
+  }
+
+  for (const condition of journey.profile.organisationConditions) {
+    const calendarType = explicitAcademicCalendarType(
+      condition.code,
+      condition.organisationName
+    );
+    if (!calendarType) continue;
+    const code = academicCodeForCondition(calendarType, condition);
+
+    return {
+      code,
+      title:
+        `${academicCodeLabel(code)} — ` +
+        `${condition.label} (source TXC calendar ${condition.code})`,
+      condition
+    };
+  }
+
+  const code = explicitAcademicCalendarType(
+    journey.privateCode,
+    journey.code
+  );
+  if (!code) return null;
+
+  return {
+    code,
+    title:
+      `${academicCodeLabel(code)} — ` +
+      "identified by the journey's source calendar name in the TXC",
+    condition: null
+  };
 }
 
 function daySpecificBadges(journey, selectedDayType) {
@@ -3264,15 +4119,13 @@ function daySpecificBadges(journey, selectedDayType) {
 function journeyHeaderBadges(journey, selectedDayType) {
   const badges = [];
 
-  for (const condition of journey.profile.organisationConditions) {
-    const displayCode = schoolDisplayBadge(condition);
+  const schoolQualifier = journeySchoolQualifierInfo(journey);
+  if (schoolQualifier) {
     badges.push({
-      code: displayCode,
-      title:
-        `${displayCode} — ${condition.label} ` +
-        `(TXC calendar ${condition.code})`,
+      code: schoolQualifier.code,
+      title: schoolQualifier.title,
       className:
-        displayCode === "SD" ? "school-days" : "non-school-days"
+        academicBadgeClass(schoolQualifier.code)
     });
   }
 
@@ -3303,22 +4156,18 @@ function schoolAndNoteLegend(journeys, selectedDayType) {
   const calendarRanges = new Map();
 
   for (const journey of journeys) {
-    for (const condition of journey.profile.organisationConditions) {
-      const displayCode = schoolDisplayBadge(condition);
-      const key =
-        `${displayCode}:${condition.code}:` +
-        `${condition.category}:${condition.operates}`;
-
+    const schoolQualifier = journeySchoolQualifierInfo(journey);
+    if (schoolQualifier) {
+      const key = `${schoolQualifier.code}:${schoolQualifier.title}`;
       if (!entries.has(key)) {
         entries.set(key, {
-          code: displayCode,
-          text:
-            `${displayCode === "SD" ? "School days" : "School holidays/non-school days"} — ` +
-            `${condition.label} (source TXC calendar ${condition.code})`
+          code: schoolQualifier.code,
+          text: schoolQualifier.title
         });
       }
 
-      if (condition.ranges.length) {
+      const condition = schoolQualifier.condition;
+      if (condition?.ranges.length) {
         calendarRanges.set(
           `${condition.code}:${condition.organisationName}`,
           condition
@@ -3371,8 +4220,10 @@ function groupedOperatingExceptions(journeys) {
   }));
 }
 
-function dayTypeLabel(value) {
-  return SIMPLE_DAY_TYPES.find(item => item.key === value)?.label || value;
+function dayTypeLabel(value, service = state.activeService) {
+  return service
+    ? availableDayTypes(service).find(item => item.key === value)?.label || value
+    : SIMPLE_DAY_TYPES.find(item => item.key === value)?.label || value;
 }
 
 function combinedDestination(service, journeys) {
@@ -3817,14 +4668,13 @@ function renderCombinedTimetable(service, journeys) {
   }).join("");
 
   const bodyRows = displayRows.map(({ stop, index, timeType, timeLabel }) => {
-    const cells = tripTimes.map(({ stopTimes }) => {
+    const requestInfos = tripTimes.map(({ journey, pattern }) =>
+      combinedStopRequestInfo(combined, pattern, journey, index)
+    );
+    const cells = tripTimes.map(({ stopTimes }, tripIndex) => {
       const value = timetableCellTime(stopTimes[index], timeType);
       return `
-      <td>${
-        value === null || value === undefined
-          ? ""
-          : formatClock(value)
-      }</td>
+      <td>${timetableCellHtml(value, requestInfos[tripIndex])}</td>
     `;
     }).join("");
 
@@ -3837,6 +4687,9 @@ function renderCombinedTimetable(service, journeys) {
           )}"
         >${escapeHtml(stop.timingStatus)}</span>`
       : "";
+    const requestChip = requestInfos.some(info => info.requestOnly)
+      ? `<span class="request-stop-chip" title="At least one displayed journey marks this stop as StopOnlyOnRequest">Request stop</span>`
+      : "";
 
     return `
       <tr class="${timing ? "timing-point" : ""}">
@@ -3844,6 +4697,7 @@ function renderCombinedTimetable(service, journeys) {
           <span class="stop-name">${escapeHtml(stop.name)}</span>
           ${timeLabel ? `<span class="time-role">${escapeHtml(timeLabel)}</span>` : ""}
           ${timingChip}
+          ${requestChip}
           <span class="stop-code">${escapeHtml(stop.ref || "")}</span>
         </td>
         ${cells}
@@ -3859,7 +4713,7 @@ function renderCombinedTimetable(service, journeys) {
   const rangeDetails = legend.calendarRanges.length
     ? `
       <details>
-        <summary>View school-calendar date ranges from the TXC</summary>
+        <summary>View academic-calendar date ranges from the TXC</summary>
         <div class="calendar-ranges">
           <ul>
             ${legend.calendarRanges.map(condition => `
@@ -3893,6 +4747,26 @@ function renderCombinedTimetable(service, journeys) {
           `).join("")}
         </ul>
         ${rangeDetails}
+      </div>
+    `
+    : "";
+
+  const stopRequestEntries = stopRequestLegendEntries(combined, tripTimes);
+  const stopRequestHtml = stopRequestEntries.length
+    ? `
+      <div class="exception-panel">
+        <strong>Stop and request notes</strong>
+        <ul>
+          ${stopRequestEntries.map(item => `
+            <li>
+              ${item.code ? `<strong>${escapeHtml(item.code)}</strong> — ` : ""}
+              ${escapeHtml(item.stopName)}
+              ${item.stopRef ? ` (${escapeHtml(item.stopRef)})` : ""}:
+              ${escapeHtml(item.text || "No note text supplied")}
+              ${item.requestOnly ? " · StopOnlyOnRequest=true" : ""}
+            </li>
+          `).join("")}
+        </ul>
       </div>
     `
     : "";
@@ -3959,6 +4833,7 @@ function renderCombinedTimetable(service, journeys) {
       </div>
 
       ${dynamicDestinationHtml}
+      ${stopRequestHtml}
       ${legendHtml}
       ${exceptionHtml}
     </article>
@@ -3977,10 +4852,13 @@ function renderActiveService() {
   const selectedDayType = els.profileSelect.value;
   const selectedDirection = els.patternSelect.value;
 
-  const journeys = journeysForPeriod(service).filter(
-    journey =>
-      journey.profile.dayCategories.includes(selectedDayType) &&
-      journeyDirectionFor(service, journey) === selectedDirection
+  const sourceJourneys = journeysForDay(service, selectedDayType).filter(
+    journey => journeyDirectionFor(service, journey) === selectedDirection
+  );
+  const journeys = mergeEquivalentWeekdayJourneys(
+    service,
+    sourceJourneys,
+    selectedDayType
   );
 
   const rendered = renderCombinedTimetable(service, journeys);
@@ -3999,7 +4877,10 @@ function renderActiveService() {
     `Showing ${periodLabel(selectedTimetablePeriod(service), false)}, ` +
     `${dayTypeLabel(selectedDayType)}, ` +
     `${directionLabel(service, selectedDirection)}: ` +
-    `${journeys.length} journey column(s) in one combined timetable.`;
+    `${journeys.length} journey column(s) in one combined timetable` +
+    (sourceJourneys.length > journeys.length
+      ? ` (${sourceJourneys.length} matching source records consolidated).`
+      : ".");
 }
 
 
@@ -4058,18 +4939,11 @@ function compactOperatingDays(profile) {
   return "Not stated";
 }
 
-function compactTripType(profile, dayType) {
+function compactTripType(journey, dayType) {
   const types = new Set();
-  if (profile.schooldaysOnly) types.add("SD");
-  if (dayType === "bank-holiday" || profile.bankHolidayOnly) types.add("BH");
-
-  for (const condition of profile.organisationConditions || []) {
-    if (condition.category === "WorkingDays") {
-      types.add(condition.operates ? "SD" : "SH");
-    } else if (condition.category === "Holidays") {
-      types.add(condition.operates ? "SH" : "SD");
-    }
-  }
+  const schoolQualifier = journeySchoolQualifierInfo(journey);
+  if (schoolQualifier) types.add(schoolQualifier.code);
+  if (dayType === "bank-holiday" || journey.profile.bankHolidayOnly) types.add("BH");
   return Array.from(types).join("/");
 }
 
@@ -4093,12 +4967,16 @@ function actualDirectionLabel(service, journeys) {
 }
 
 function timetableRowsForDirection(service, dayType, direction) {
-  const journeys = journeysForPeriod(service)
+  const sourceJourneys = journeysForDay(service, dayType)
     .filter(journey =>
-      journey.profile.dayCategories.includes(dayType) &&
       journeyDirectionFor(service, journey) === direction &&
       journey.departureSeconds !== null
-    )
+    );
+  const journeys = mergeEquivalentWeekdayJourneys(
+    service,
+    sourceJourneys,
+    dayType
+  )
     .sort((a, b) => a.departureSeconds - b.departureSeconds);
   if (!journeys.length) return [];
 
@@ -4127,7 +5005,7 @@ function timetableRowsForDirection(service, dayType, direction) {
     { style: 4, values: ["", "Operating days", ...tripTimes.map(({ journey }) =>
       compactOperatingDays(journey.profile))] },
     { style: 4, values: ["", "Trip type", ...tripTimes.map(({ journey }) =>
-      compactTripType(journey.profile, dayType))] },
+      compactTripType(journey, dayType))] },
     { style: 4, values: ["", "Journey pattern", ...tripTimes.map(({ pattern }) => {
       if (!pattern) return "";
       const patternJourneys = journeys.filter(
@@ -4155,24 +5033,43 @@ function timetableRowsForDirection(service, dayType, direction) {
       values: [
         stop.ref,
         timeLabel ? `${stop.name} (${timeLabel})` : stop.name,
-        ...tripTimes.map(({ stopTimes }) => {
+        ...tripTimes.map(({ stopTimes, journey, pattern }) => {
           const value = timetableCellTime(stopTimes[index], timeType);
-          return value === null || value === undefined ? "" : plainClock(value);
+          const requestInfo = combinedStopRequestInfo(
+            combined,
+            pattern,
+            journey,
+            index
+          );
+          return plainTimetableCell(value, requestInfo);
         })
       ]
     });
   });
+  const stopRequestEntries = stopRequestLegendEntries(combined, tripTimes);
+  if (stopRequestEntries.length) {
+    rows.push(
+      { style: 0, values: [] },
+      { style: 3, values: ["", "Stop and request notes"] },
+      ...stopRequestEntries.map(item => ({
+        style: 4,
+        values: [
+          item.stopRef,
+          item.code || "Request stop",
+          `${item.stopName}: ${item.text || "No note text supplied"}` +
+            (item.requestOnly ? " · StopOnlyOnRequest=true" : "")
+        ]
+      }))
+    );
+  }
   rows.push({ style: 0, values: [] }, { style: 0, values: [] });
   return rows;
 }
 
 function workbookSheets(service) {
-  const periodJourneys = journeysForPeriod(service);
-  return SIMPLE_DAY_TYPES
-    .filter(day => periodJourneys.some(journey => journey.profile.dayCategories.includes(day.key)))
+  return availableDayTypes(service)
     .map(day => {
-      const directions = Array.from(new Set(periodJourneys
-        .filter(journey => journey.profile.dayCategories.includes(day.key))
+      const directions = Array.from(new Set(journeysForDay(service, day.key)
         .map(journey => journeyDirectionFor(service, journey))))
         .sort((a, b) => ["outbound", "inbound", "unspecified"].indexOf(a) -
                         ["outbound", "inbound", "unspecified"].indexOf(b));
